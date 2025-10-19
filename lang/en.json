@@ -1,0 +1,16 @@
+{
+  "token-formations": {
+    "module-name": "Token Formations",
+    "module-description": "A module for managing token formations in Foundry VTT",
+    "settings": {
+      "example-setting": {
+        "name": "Example Setting",
+        "hint": "This is an example setting for future use"
+      }
+    },
+    "messages": {
+      "module-loaded": "Token Formations module loaded successfully",
+      "canvas-ready": "Token Formations ready for use"
+    }
+  }
+}
