@@ -209,6 +209,43 @@ function drawSegmentBetweenCells(x1, y1, x2, y2, color = 0x00ff00, duration = 10
   }, duration);
 }
 
+function getAdjacentPositions(pos) {
+  let positions = []
+  for (let i = 0; i < 4; i++) {
+
+    let newPos
+    switch (i) {
+      case 0:
+        newPos ={
+          x: pos.x + canvas.grid.size,
+          y: pos.y
+        }
+        break;
+      case 1:
+        newPos = {
+          x: pos.x,
+          y: pos.y + canvas.grid.size
+        }
+        break;
+      case 2:
+        newPos = {
+          x: pos.x - canvas.grid.size,
+          y: pos.y
+        }
+        break;
+      case 3:
+        newPos = {
+          x: pos.x,
+          y: pos.y - canvas.grid.size
+        }
+        break;
+    }
+    positions.push(newPos)
+  }
+
+  return positions
+}
+
 Hooks.on('moveToken', (token, movement, options, userId) => { 
   if (window.TokenFormations.isLeader(token.id)) {
     const followers = window.TokenFormations.getFollowers(token.id);
@@ -281,6 +318,7 @@ Hooks.on('moveToken', (token, movement, options, userId) => {
     let queue = new PriorityQueue()
     queue.add(firstPosition, 0)
     let validPositions = []
+    let fallbackPositions = new PriorityQueue()
     let visited = [firstPosition]
     let neededPositions = followerLength
 
@@ -325,42 +363,35 @@ Hooks.on('moveToken', (token, movement, options, userId) => {
 
       console.log("Collisions:", collisions)
 
-      for (let i = 0; i < 4; i++) {
-        let newPos
-        switch (i) {
-          case 0:
-            newPos ={
-              x: pos.x + canvas.grid.size,
-              y: pos.y
-            }
-            break;
-          case 1:
-          newPos = {
-            x: pos.x,
-            y: pos.y + canvas.grid.size
-          }
-          break;
-          case 2:
-          newPos = {
-            x: pos.x - canvas.grid.size,
-            y: pos.y
-          }
-          break;
-          case 3:
-            newPos = {
-              x: pos.x,
-              y: pos.y - canvas.grid.size
-            }
-            break;
+      for (const newPos of getAdjacentPositions(pos)) {
+        if(!collisions[i] && visited.findIndex((e) => newPos.x === e.x && newPos.y === e.y) === -1) {
+          if (inLeftRightBoundary(newPos, boundaries) && inGrowBoundary(newPos, boundaries))
+            queue.add(newPos, Math.sqrt(Math.pow(newPos.x - firstPosition.x, 2) + Math.pow(newPos.y - firstPosition.y, 2)))
+          else if (inGrowBoundary(newPos, boundaries)) // NOTE: could remove this check if you don't care about followers ending up in front of the leader
+            fallbackPositions.add(newPos, Math.sqrt(Math.pow(newPos.x - firstPosition.x, 2) + Math.pow(newPos.y - firstPosition.y, 2)))
         }
-        if(
-          !collisions[i] 
-          && inLeftRightBoundary(newPos, boundaries) 
-          && inGrowBoundary(newPos, boundaries)
-          && visited.findIndex((e) => newPos.x === e.x && newPos.y === e.y) === -1
+        visited.push(newPos)
+      }
+      neededPositions--
+    }
+
+    // Run this in case there are no valid cells in the boundaries
+    if (fallbackPositions.isEmpty && neededPositions > 0) {
+      let pos = fallbackPositions.min()
+      fallbackPositions.remove()
+
+      validPositions.push(pos)
+
+      let collisions = checkWallCollision(pos)
+
+      console.log("Collisions:", collisions)
+
+      for (const newPos of getAdjacentPositions(pos)) {
+        if(!collisions[i] 
+            && visited.findIndex((e) => newPos.x === e.x && newPos.y === e.y) === -1
+            && inGrowBoundary(newPos, boundaries)
         ) {
-          console.log("PORCODDIO2")
-          queue.add(newPos, Math.sqrt(Math.pow(newPos.x - firstPosition.x, 2) + Math.pow(newPos.y - firstPosition.y, 2)))
+            fallbackPositions.add(newPos, Math.sqrt(Math.pow(newPos.x - firstPosition.x, 2) + Math.pow(newPos.y - firstPosition.y, 2)))
         }
         visited.push(newPos)
       }
@@ -370,6 +401,12 @@ Hooks.on('moveToken', (token, movement, options, userId) => {
     console.log("valid positions: ", validPositions)
     for (const v of validPositions) {
       drawXonCell(v.x, v.y, 0xff0000, 0.8, 10000)
+    }
+
+    for (const f of followers) {
+      // check distance and break in case it's too far
+
+      // do dijkstra
     }
 
 
