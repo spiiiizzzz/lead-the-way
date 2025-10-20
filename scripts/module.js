@@ -126,13 +126,13 @@ function inLeftRightBoundary (pos, boundaries) {
     const min = Math.min(boundaries.left.y, boundaries.right.y)
     const max = Math.max(boundaries.left.y, boundaries.right.y)
 
-    if (pos.y >= min && pos.y < max) return true;
+    if (pos.y >= min && pos.y <= max) return true;
     return false
   } else {
     const min = Math.min(boundaries.left.x, boundaries.right.x)
     const max = Math.max(boundaries.left.x, boundaries.right.x)
 
-    if (pos.x >= min && pos.x < max) return true;
+    if (pos.x >= min && pos.x <= max) return true;
     return false
   }
 }
@@ -322,11 +322,16 @@ Hooks.on('moveToken', (token, movement, options, userId) => {
             }
             break;
         }
-        visited.push(newPos)
-        if(!collisions[i] && inLeftRightBoundary(newPos, boundaries) && inGrowBoundary(newPos, boundaries)) {
+        if(
+          !collisions[i] 
+          && inLeftRightBoundary(newPos, boundaries) 
+          && inGrowBoundary(newPos, boundaries)
+          && visited.findIndex((e) => newPos.x === e.x && newPos.y === e.y) === -1
+        ) {
           console.log("PORCODDIO2")
           queue.push(newPos)
         }
+        visited.push(newPos)
       }
       neededPositions--
     }
