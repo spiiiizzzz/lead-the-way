@@ -4,6 +4,7 @@
  */
 
 import PriorityQueue from "./priorityQueue.js";
+import * as gui from "./gui.js";
 // Module constants
 const MODULE_ID = 'token-formations';
 const MODULE_NAME = 'Token Formations';
@@ -61,7 +62,8 @@ Hooks.once('ready', () => {
               `Added ${selectedToken.name} as follower to ${leader.name}`,
               {permanent: false}
             );
-            
+
+            gui.createFollowingIndicator(selectedToken, leader);
             // Print the updated follower list for the leader (hovered token)
             const followers = window.TokenFormations.getFollowers(leader.id);
             console.log(`${MODULE_NAME} | Leader: ${leader.name} (ID: ${leader.id})`);
