@@ -3,6 +3,7 @@
  * A module for managing token formations
  */
 
+import PriorityQueue from "./priorityQueue.js";
 // Module constants
 const MODULE_ID = 'token-formations';
 const MODULE_NAME = 'Token Formations';
@@ -182,6 +183,32 @@ function drawXonCell(x, y, color = 0xff0000, size = 0.8, duration = 1000) {
   }, duration);
 }
 
+function rotateClockwise(vector) {
+  return {
+    x: vector.y,
+    y: -vector.x
+  }
+}
+
+function drawSegmentBetweenCells(x1, y1, x2, y2, color = 0x00ff00, duration = 1000) {
+  const gridSize = canvas.grid.size;
+  // Calcola il centro di ciascuna casella
+  const center1 = { x: x1 + gridSize / 2, y: y1 + gridSize / 2 };
+  const center2 = { x: x2 + gridSize / 2, y: y2 + gridSize / 2 };
+
+  const g = new PIXI.Graphics();
+  g.lineStyle(3, color, 0.9);
+  g.moveTo(center1.x, center1.y);
+  g.lineTo(center2.x, center2.y);
+
+  canvas.stage.addChild(g);
+
+  setTimeout(() => {
+    canvas.stage.removeChild(g);
+    g.destroy();
+  }, duration);
+}
+
 Hooks.on('moveToken', (token, movement, options, userId) => { 
   if (window.TokenFormations.isLeader(token.id)) {
     const followers = window.TokenFormations.getFollowers(token.id);
@@ -251,7 +278,8 @@ Hooks.on('moveToken', (token, movement, options, userId) => {
 
     console.log("Closest cardinal:", closestCardinal)
 
-    let queue = [firstPosition]
+    let queue = new PriorityQueue()
+    queue.add(firstPosition, 0)
     let validPositions = []
     let visited = [firstPosition]
     let neededPositions = followerLength
@@ -268,25 +296,28 @@ Hooks.on('moveToken', (token, movement, options, userId) => {
       const oppositeCardinal = {x: -movementCardinal.x, y: -movementCardinal.y}
       boundaries.right = firstPosition
       boundaries.left = {
-        x: boundaries.right.x + n * oppositeCardinal.x * canvas.grid.size,
-        y: boundaries.right.y + n * oppositeCardinal.y * canvas.grid.size
+        x: boundaries.right.x + (n-1) * oppositeCardinal.x * canvas.grid.size,
+        y: boundaries.right.y + (n-1) * oppositeCardinal.y * canvas.grid.size
       }
     } else {
       console.log("Caso parallelo")
-      const oppositeCardinal = {x: -movementCardinal.x, y: -movementCardinal.y}
+      const oppositeCardinal = rotateClockwise(movementCardinal)
       boundaries.right = {
-        x: Math.floor(n/2) * movementCardinal.y * canvas.grid.size + firstPosition.x,
-        y: Math.floor(n/2) * movementCardinal.x * canvas.grid.size + firstPosition.y
+        x: Math.floor(n/2) * oppositeCardinal.x * canvas.grid.size + firstPosition.x,
+        y: Math.floor(n/2) * oppositeCardinal.y * canvas.grid.size + firstPosition.y
       }
 
       boundaries.left = {
-        x: boundaries.right.x + n * oppositeCardinal.y * canvas.grid.size,
-        y: boundaries.right.y + n * oppositeCardinal.x * canvas.grid.size
+        x: boundaries.right.x + (n-1) * -oppositeCardinal.x * canvas.grid.size,
+        y: boundaries.right.y + (n-1) * -oppositeCardinal.y * canvas.grid.size
       }
     }
 
-    while (queue.length > 0 && neededPositions > 0) {
-      let pos = queue.splice(0, 1)[0]
+    drawSegmentBetweenCells(boundaries.right.x, boundaries.right.y, boundaries.left.x, boundaries.left.y)
+
+    while (!queue.isEmpty() && neededPositions > 0) {
+      let pos = queue.min()
+      queue.remove()
 
       validPositions.push(pos)
 
@@ -329,7 +360,7 @@ Hooks.on('moveToken', (token, movement, options, userId) => {
           && visited.findIndex((e) => newPos.x === e.x && newPos.y === e.y) === -1
         ) {
           console.log("PORCODDIO2")
-          queue.push(newPos)
+          queue.add(newPos, Math.sqrt(Math.pow(newPos.x - firstPosition.x, 2) + Math.pow(newPos.y - firstPosition.y, 2)))
         }
         visited.push(newPos)
       }

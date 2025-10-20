@@ -15,7 +15,8 @@
     }
   ],
   "esmodules": [
-    "scripts/module.js"
+    "scripts/module.js",
+    "scripts/priorityQueue.js"
   ],
   "styles": [
     "styles.css"
