@@ -69,8 +69,8 @@ function updateAllFollowingIndicators() {
 
 Hooks.once('init', function() {
   game.settings.register('token-formations', 'showFollowingIndicator', {
-    name: "Mostra indicatore di following",
-    hint: "Attiva o disattiva l'indicatore di following.",
+    name: game.i18n.localize("token-formations.settings.showFollowingIndicator.name"),
+    hint: game.i18n.localize("token-formations.settings.showFollowingIndicator.hint"),
     scope: "client",
     config: true,
     type: Boolean,
@@ -79,8 +79,8 @@ Hooks.once('init', function() {
   });
 
   game.settings.register('token-formations', 'indicatorSize', {
-    name: "Dimensione indicatore",
-    hint: "Scegli la dimensione dell'indicatore di following.",
+    name: game.i18n.localize("token-formations.settings.indicatorSize.name"),
+    hint: game.i18n.localize("token-formations.settings.indicatorSize.hint"),
     scope: "client",
     config: settings => settings['token-formations.showFollowingIndicator'] === true,
     type: Number,
@@ -94,24 +94,24 @@ Hooks.once('init', function() {
   });
 
   game.settings.register('token-formations', 'indicatorCorner', {
-    name: "Angolo segnalino",
-    hint: "Scegli l'angolo in cui visualizzare il segnalino sul token.",
+    name: game.i18n.localize("token-formations.settings.indicatorCorner.name"),
+    hint: game.i18n.localize("token-formations.settings.indicatorCorner.hint"),
     scope: "client",
     config: settings => settings['token-formations.showFollowingIndicator'] === true,
     type: String,
     choices: {
-      "top-left": "Alto Sinistra",
-      "top-right": "Alto Destra",
-      "bottom-left": "Basso Sinistra",
-      "bottom-right": "Basso Destra"
+      "top-left": game.i18n.localize("token-formations.settings.indicatorCorner.topLeft"),
+      "top-right": game.i18n.localize("token-formations.settings.indicatorCorner.topRight"),
+      "bottom-left": game.i18n.localize("token-formations.settings.indicatorCorner.bottomLeft"),
+      "bottom-right": game.i18n.localize("token-formations.settings.indicatorCorner.bottomRight")
     },
     default: "top-left",
     onChange: () => updateAllFollowingIndicators()
   });
 
   game.settings.register('token-formations', 'showIndicatorBorder', {
-    name: "Mostra bordo indicatore",
-    hint: "Attiva o disattiva il bordo dell'indicatore di following.",
+    name: game.i18n.localize("token-formations.settings.showIndicatorBorder.name"),
+    hint: game.i18n.localize("token-formations.settings.showIndicatorBorder.hint"),
     scope: "client",
     config: true,
     type: Boolean,
@@ -120,8 +120,8 @@ Hooks.once('init', function() {
   });
 
   game.settings.register('token-formations', 'indicatorColor', {
-    name: "Colore bordo indicatore",
-    hint: "Scegli il colore del bordo dell'indicatore di following.",
+    name: game.i18n.localize("token-formations.settings.indicatorColor.name"),
+    hint: game.i18n.localize("token-formations.settings.indicatorColor.hint"),
     scope: "client",
     config: settings => settings['token-formations.showIndicatorBorder'] === true && settings['token-formations.showFollowingIndicator'] === true,
     type: String,
@@ -130,8 +130,8 @@ Hooks.once('init', function() {
   });
 
   game.settings.register('token-formations', 'indicatorBorderThickness', {
-    name: "Spessore bordo indicatore",
-    hint: "Scegli lo spessore del bordo dell'indicatore di following.",
+    name: game.i18n.localize("token-formations.settings.indicatorBorderThickness.name"),
+    hint: game.i18n.localize("token-formations.settings.indicatorBorderThickness.hint"),
     scope: "client",
     config: settings => settings['token-formations.showIndicatorBorder'] === true && settings['token-formations.showFollowingIndicator'] === true,
     type: Number,
@@ -143,5 +143,66 @@ Hooks.once('init', function() {
     },
     onChange: () => updateAllFollowingIndicators()
   });
-
 });
+
+Hooks.on("getSceneControlButtons", controls => {
+
+  controls.tokens.tools.tutorial = {
+    name: "tokenFormationsInfo",
+    title: game.i18n.localize("token-formations.buttons.info"),
+    order: 5,
+    icon: "fa-solid fa-info-circle",
+    button: false,
+    visible: true
+  }
+  console.log("Controls:", controls)
+  controls.tokens.tools.clearFormations = {
+    name: "clearFormations",
+    title: game.i18n.localize("token-formations.buttons.clearFormations"),
+    icon: "fa-solid fa-users-slash",
+    order: Object.keys(controls.tokens.tools).length,
+    button: true,
+    visible: game.user.isGM,
+    onChange: async () => {
+      const proceed = await foundry.applications.api.DialogV2.confirm({
+        content: game.i18n.localize("token-formations.messages.confirmClearAll"),
+        rejectClose: false,
+        modal: true
+      });
+      if (proceed) {
+          ui.notifications.info(game.i18n.localize("token-formations.messages.clearedAll"));
+          //TODO: clear formations
+      } else {
+        console.log("Do not proceed.");
+      }
+    }
+  }
+  
+  controls.tokens.tools.disbandFormation = {
+    name: "disbandFormation",
+    title: game.i18n.localize("token-formations.buttons.disbandFormation"),
+    icon: "fa-solid fa-users-slash",
+    order: Object.keys(controls.tokens.tools).length + 1,
+    button: true,
+    visible: !game.user.isGM,
+    onChange: async () => {
+      if (!canvas.tokens.controlled.length) {
+        ui.notifications.warn(game.i18n.localize("token-formations.messages.noTokenSelected"));
+        return;
+      }
+      const proceed = await foundry.applications.api.DialogV2.confirm({
+        content: game.i18n.localize("token-formations.messages.confirmDisbandFormation"),
+        rejectClose: false,
+        modal: true
+      });
+      if (proceed) {
+          ui.notifications.info(game.i18n.localize("token-formations.messages.disbandedFormation"));
+          //TODO: disband formation
+      } else {
+        console.log("Do not proceed.");
+      }
+    }
+
+  }
+  });
+
