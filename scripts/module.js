@@ -31,7 +31,7 @@ const formations = new Map();
  * Initialize the module
  */
 Hooks.once('init', () => {
-  console.log(`${MODULE_NAME} | Initializing module`);
+  console.log(`${MODULE_NAME} | ${game.i18n.localize("token-formations.messages.init")}`);
   
   // Register module settings here if needed
   // game.settings.register(MODULE_ID, 'setting-name', {
@@ -48,7 +48,7 @@ Hooks.once('init', () => {
  * Setup the module when Foundry is ready
  */
 Hooks.once('ready', () => {
-  console.log(`${MODULE_NAME} | Module ready`);
+  console.log(`${MODULE_NAME} | ${game.i18n.localize("token-formations.messages.ready")}`);
   
   // Add keyboard event listener for F key
   document.addEventListener('keydown', (event) => {
@@ -71,7 +71,7 @@ Hooks.once('ready', () => {
             window.TokenFormations.addFollower(leader.id, selectedToken);
             
             ui.notifications.info(
-              `Added ${selectedToken.name} as follower to ${leader.name}`,
+              game.i18n.format("token-formations.messages.addedFollower", { follower: selectedToken.name, leader: leader.name }),
               { permanent: false }
             );
 
@@ -81,7 +81,7 @@ Hooks.once('ready', () => {
             console.log(`${MODULE_NAME} | Leader: ${leader.name} (ID: ${leader.id})`);
             
             if (followers.size > 0) {
-              console.log(`${MODULE_NAME} | Followers (${followers.size}):`);
+              console.log(`${MODULE_NAME} | ${game.i18n.format("token-formations.messages.followers", { count: followers.size })}`);
               followers.forEach(followerId => {
                 const followerToken = canvas.tokens.get(followerId);
                 if (followerToken) {
@@ -91,26 +91,26 @@ Hooks.once('ready', () => {
                 }
               });
             } else {
-              console.log(`${MODULE_NAME} | No followers for this leader.`);
+              console.log(`${MODULE_NAME} | ${game.i18n.localize("token-formations.messages.noFollowers")}`);
             }
             
           } else {
-            ui.notifications.warn("A token cannot follow itself!");
+            ui.notifications.warn(game.i18n.localize("token-formations.messages.noSelfFollow"));
           }
         } else if (selectedTokens.length === 0) {
-          ui.notifications.warn("Please select a token first!");
+          ui.notifications.warn(game.i18n.localize("token-formations.messages.selectToken"));
         } else if (selectedTokens.length > 1) {
-          ui.notifications.warn("Please select only one token!");
+          ui.notifications.warn(game.i18n.localize("token-formations.messages.selectOneToken"));
         } else if (!hoveredToken) {
-          ui.notifications.warn("Please hover over a leader token!");
+          ui.notifications.warn(game.i18n.localize("token-formations.messages.hoverLeader"));
         }
       }
     }
   });
 
   game.settings.register('token-formations', 'queue-width', {
-    name: "Larghezza della formazione",
-    hint: "Imposta la larghezza (in celle di griglia) della formazione dei seguaci.",
+    name: game.i18n.localize("token-formations.settings.queueWidth.name"),
+    hint: game.i18n.localize("token-formations.settings.queueWidth.hint"),
     scope: 'world',
     config: true,
     type: Number,
@@ -118,8 +118,8 @@ Hooks.once('ready', () => {
   });
 
   game.settings.register('token-formations', 'max-distance', {
-    name: "Distanza massima",
-    hint: "Imposta la distanza massima a cui un token può seguire il leader. 0 = Infinito. Imponi un limite se il sistema risulta lento",
+    name: game.i18n.localize("token-formations.settings.maxDistance.name"),
+    hint: game.i18n.localize("token-formations.settings.maxDistance.hint"),
     scope: 'world',
     config: true,
     type: Number,
@@ -393,7 +393,7 @@ window.TokenFormations = {
       formations.set(leaderId, new Array());
     }
     formations.get(leaderId).push(follower);
-    console.log(`${MODULE_NAME} | Added follower ${follower.id} to leader ${leaderId}`);
+    console.log(`${MODULE_NAME} | ${game.i18n.format("token-formations.messages.addedFollower", { follower: follower.id, leader: leaderId })}`);
   },
   
   /**
@@ -433,7 +433,7 @@ window.TokenFormations = {
     // Remove as leader
     if (formations.has(token.id)) {
       formations.delete(token.id);
-      console.log(`${MODULE_NAME} | Removed leader ${token.id} and disbanded formation`);
+      console.log(`${MODULE_NAME} | ${game.i18n.format("token-formations.messages.removedLeader", { id: token.id })}`);
     }
     
     // Remove as follower
@@ -444,7 +444,7 @@ window.TokenFormations = {
         if (followers.length === 0) {
           formations.delete(leaderId);
         }
-        console.log(`${MODULE_NAME} | Removed ${token.id} as follower from leader ${leaderId}`);
+        console.log(`${MODULE_NAME} | ${game.i18n.format("token-formations.messages.removedFollower", { id: tokenId, leader: leaderId })}`);
         break;
       }
     }
@@ -455,6 +455,6 @@ window.TokenFormations = {
    */
   clearAllFormations() {
     formations.clear();
-    console.log(`${MODULE_NAME} | Cleared all formations`);
+    console.log(`${MODULE_NAME} | ${game.i18n.localize("token-formations.messages.clearedAll")}`);
   }
 };

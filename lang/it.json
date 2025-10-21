@@ -1,0 +1,73 @@
+{
+  "token-formations": {
+    "module": {
+      "name": "Formazioni Token",
+      "description": "Un modulo per gestire le formazioni dei token in Foundry VTT"
+    },
+    "settings": {
+      "queueWidth": {
+        "name": "Larghezza formazione",
+        "hint": "Imposta la larghezza (in celle della griglia) della formazione dei seguaci."
+      },
+      "maxDistance": {
+        "name": "Distanza massima",
+        "hint": "Imposta la distanza massima a cui un token può seguire il leader. 0 = Infinita. Imposta un limite se il sistema è lento."
+      },
+      "showFollowingIndicator": {
+        "name": "Mostra indicatore di seguito",
+        "hint": "Abilita o disabilita l'indicatore di seguito."
+      },
+      "indicatorSize": {
+        "name": "Dimensione indicatore",
+        "hint": "Scegli la dimensione dell'indicatore di seguito."
+      },
+      "indicatorCorner": {
+        "name": "Angolo indicatore",
+        "hint": "Scegli l'angolo in cui viene visualizzato l'indicatore sul token.",
+        "topLeft": "In alto a sinistra",
+        "topRight": "In alto a destra",
+        "bottomLeft": "In basso a sinistra",
+        "bottomRight": "In basso a destra"
+      },
+      "showIndicatorBorder": {
+        "name": "Mostra bordo indicatore",
+        "hint": "Abilita o disabilita il bordo dell'indicatore di seguito."
+      },
+      "indicatorColor": {
+        "name": "Colore bordo indicatore",
+        "hint": "Scegli il colore del bordo dell'indicatore di seguito."
+      },
+      "indicatorBorderThickness": {
+        "name": "Spessore bordo indicatore",
+        "hint": "Scegli lo spessore del bordo dell'indicatore di seguito."
+      }
+    },
+    "messages": {
+      "init": "Inizializzazione del modulo",
+      "ready": "Modulo pronto",
+      "addedFollower": "Aggiunto {follower} come seguace di {leader}",
+      "noSelfFollow": "Un token non può seguire sé stesso!",
+      "selectToken": "Seleziona prima un token!",
+      "selectOneToken": "Seleziona solo un token!",
+      "hoverLeader": "Passa il mouse sopra un token leader!",
+      "followers": "Seguaci ({count}):",
+      "noFollowers": "Nessun seguace per questo leader.",
+      "removedLeader": "Leader {id} rimosso e formazione sciolta",
+      "removedFollower": "Rimosso {id} come seguace dal leader {leader}",
+      "clearedAll": "Tutte le formazioni sono state cancellate",
+      "targetTooFar": "L'obiettivo da raggiungere è troppo lontano",
+      "confirmClearAll": "Sei sicuro di voler eliminare tutte le formazioni?",
+      "noTokenSelected": "Nessun token selezionato!",
+      "confirmDisbandFormation": "Sei sicuro di voler sciogliere la formazione selezionata?",
+      "disbandedFormation": "Formazione sciolta"
+    },
+    "buttons": {
+      "info": "Info Formazioni Token",
+      "clearFormations": "Sciogli tutte le formazioni",
+      "disbandFormation": "Sciogli formazione"
+    },
+    "tooltips": {
+      "info": "Questo modulo permette di creare e gestire formazioni di token. Seleziona un token, passa il mouse su un altro e premi F per farlo seguire. Usa i pulsanti qui sotto per sciogliere le formazioni."
+    }
+  }
+}

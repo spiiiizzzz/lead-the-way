@@ -1,16 +1,73 @@
 {
   "token-formations": {
-    "module-name": "Token Formations",
-    "module-description": "A module for managing token formations in Foundry VTT",
+    "module": {
+      "name": "Token Formations",
+      "description": "A module for managing token formations in Foundry VTT"
+    },
     "settings": {
-      "example-setting": {
-        "name": "Example Setting",
-        "hint": "This is an example setting for future use"
+      "queueWidth": {
+        "name": "Formation Width",
+        "hint": "Set the width (in grid cells) of the follower formation."
+      },
+      "maxDistance": {
+        "name": "Maximum Distance",
+        "hint": "Set the maximum distance a token can follow the leader. 0 = Infinite. Set a limit if the system is slow."
+      },
+      "showFollowingIndicator": {
+        "name": "Show following indicator",
+        "hint": "Enable or disable the following indicator."
+      },
+      "indicatorSize": {
+        "name": "Indicator size",
+        "hint": "Choose the size of the following indicator."
+      },
+      "indicatorCorner": {
+        "name": "Indicator corner",
+        "hint": "Choose the corner where the indicator is displayed on the token.",
+        "topLeft": "Top Left",
+        "topRight": "Top Right",
+        "bottomLeft": "Bottom Left",
+        "bottomRight": "Bottom Right"
+      },
+      "showIndicatorBorder": {
+        "name": "Show indicator border",
+        "hint": "Enable or disable the border of the following indicator."
+      },
+      "indicatorColor": {
+        "name": "Indicator border color",
+        "hint": "Choose the color of the following indicator's border."
+      },
+      "indicatorBorderThickness": {
+        "name": "Indicator border thickness",
+        "hint": "Choose the thickness of the following indicator's border."
       }
     },
     "messages": {
-      "module-loaded": "Token Formations module loaded successfully",
-      "canvas-ready": "Token Formations ready for use"
+      "init": "Initializing module",
+      "ready": "Module ready",
+      "addedFollower": "Added {follower} as follower to {leader}",
+      "noSelfFollow": "A token cannot follow itself!",
+      "selectToken": "Please select a token first!",
+      "selectOneToken": "Please select only one token!",
+      "hoverLeader": "Please hover over a leader token!",
+      "followers": "Followers ({count}):",
+      "noFollowers": "No followers for this leader.",
+      "removedLeader": "Removed leader {id} and disbanded formation",
+      "removedFollower": "Removed {id} as follower from leader {leader}",
+      "clearedAll": "Cleared all formations",
+      "targetTooFar": "The target to reach is too far",
+      "confirmClearAll": "Are you sure you want to remove all formations?",
+      "noTokenSelected": "No token selected!",
+      "confirmDisbandFormation": "Are you sure you want to disband the selected formation?",
+      "disbandedFormation": "Formation disbanded"
+    },
+    "buttons": {
+      "info": "Token Formations Info",
+      "clearFormations": "Disband All Formations",
+      "disbandFormation": "Disband Formation"
+    },
+    "tooltips": {
+      "info": "This module allows you to create and manage token formations. Select a token, hover another, and press F to make it follow. Use the buttons below to disband formations."
     }
   }
 }
