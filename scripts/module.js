@@ -51,8 +51,7 @@ Hooks.once('ready', () => {
         if (selectedTokens.length === 1 && hoveredToken) {
           const selectedToken = selectedTokens[0]; // This becomes the follower
           const leader = hoveredToken; // This becomes the leader
-          console.log(leader)
-          
+
           // Don't allow a token to follow itself
           if (selectedToken.id !== leader.id) {
             // Add the selected token as a follower to the hovered token (leader)
@@ -104,13 +103,26 @@ Hooks.once('ready', () => {
     type: Number,
     default: 2,
   });
+
+  game.settings.register('token-formations', 'max-distance', {
+    name: "Distanza massima",
+    hint: "Imposta la distanza massima a cui un token può seguire il leader. 0 = Infinito. Imponi un limite se il sistema risulta lento",
+    scope: 'world',
+    config: true,
+    type: Number,
+    range: {
+      min: 0,
+      max: 100,
+      step: 1
+    },
+    default: 0,
+  });
 });
 
 function findMinimumDistances (source, distances) {
   let minDistance = Number.MAX_SAFE_INTEGER
   let minPosition = null
   distances.map((s) => {
-    console.log("Source:", source.x, source.y)
     const tmp = Math.sqrt(Math.pow(s.x - source.x, 2) + Math.pow(s.y - source.y, 2))
     if (tmp <= minDistance) {
       minDistance = tmp
@@ -130,11 +142,8 @@ function dot(vector1, vector2) {
 
 
 function inLeftRightBoundary (pos, boundaries) {
-  console.log("Pos:", pos)
-  console.log("Boundaries:", boundaries)
 
   if (boundaries.left.x === boundaries.right.x && boundaries.left.y === boundaries.right.y) {
-    console.log("InLRBoundary -> Equal boundaries");
     if (boundaries.growDirection.x === 0) {
       if(pos.x === boundaries.right.x) return true
       return false
@@ -147,7 +156,6 @@ function inLeftRightBoundary (pos, boundaries) {
   if (boundaries.left.x === boundaries.right.x) {
     const min = Math.min(boundaries.left.y, boundaries.right.y)
     const max = Math.max(boundaries.left.y, boundaries.right.y)
-    console.log("InLRBoundary -> Min:", min, "Max:", max);
     if (pos.y >= min && pos.y <= max) return true;
     return false
   } else {
@@ -180,7 +188,6 @@ function inGrowBoundary (pos, boundaries) {
 }
 
 function drawXonCell(x, y, color = 0xff0000, size = 0.8, duration = 1000) {
-  console.log("PORCODDIO")
 
   const gridSize = canvas.grid.size;
   const margin = (gridSize * (1 - size)) / 2;
@@ -230,36 +237,58 @@ function drawSegmentBetweenCells(x1, y1, x2, y2, color = 0x00ff00, duration = 10
   }, duration);
 }
 
-function getAdjacentPositions(pos) {
+function getAdjacentPositions(pos, boundaries, checkDiagonals = false) {
   let positions = []
-  for (let i = 0; i < 4; i++) {
 
-    let newPos
-    switch (i) {
-      case 0:
-        newPos ={
-          x: pos.x + canvas.grid.size,
-          y: pos.y
-        }
-        break;
-      case 1:
-        newPos = {
-          x: pos.x,
-          y: pos.y + canvas.grid.size
-        }
-        break;
-      case 2:
-        newPos = {
-          x: pos.x - canvas.grid.size,
-          y: pos.y
-        }
-        break;
-      case 3:
-        newPos = {
-          x: pos.x,
-          y: pos.y - canvas.grid.size
-        }
-        break;
+  const d1 = rotateClockwise(boundaries.growDirection)
+
+  let newPos = {
+    x: pos.x + d1.x * canvas.grid.size,
+    y: pos.y + d1.y * canvas.grid.size
+  }
+
+  positions.push(newPos)
+
+  newPos = {
+    x: pos.x + -d1.x * canvas.grid.size,
+    y: pos.y + -d1.y * canvas.grid.size
+  }
+
+  positions.push(newPos)
+
+  newPos = {
+    x: pos.x + boundaries.growDirection.x * canvas.grid.size,
+    y: pos.y + boundaries.growDirection.y * canvas.grid.size
+  }
+
+  positions.push(newPos)
+
+  newPos = {
+    x: pos.x + -boundaries.growDirection.x * canvas.grid.size,
+    y: pos.y + -boundaries.growDirection.y * canvas.grid.size
+  }
+
+  positions.push(newPos)
+
+  if (checkDiagonals) {
+    newPos = {
+      x: pos.x + canvas.grid.size,
+      y: pos.y + canvas.grid.size
+    }
+    positions.push(newPos)
+    newPos = {
+      x: pos.x - canvas.grid.size,
+      y: pos.y + canvas.grid.size
+    }
+    positions.push(newPos)
+    newPos = {
+      x: pos.x - canvas.grid.size,
+      y: pos.y - canvas.grid.size
+    }
+    positions.push(newPos)
+    newPos = {
+      x: pos.x + canvas.grid.size,
+      y: pos.y - canvas.grid.size
     }
     positions.push(newPos)
   }
@@ -268,9 +297,19 @@ function getAdjacentPositions(pos) {
 }
 
 Hooks.on('moveToken', (token, movement, options, userId) => { 
+  if (movement.operation.method !== "api" && window.TokenFormations.getAllFollowers().findIndex((e) => e.id === token.id) !== -1) {
+    window.TokenFormations.findLeader
+
+    // TODO FIX
+    return
+  }
+
   if (window.TokenFormations.isLeader(token.id)) {
+    if (movement.operation.method === "api") {
+      return
+    }
+
     const followers = window.TokenFormations.getFollowers(token.id);
-    console.log("followers:", followers)
     const followerLength = followers.length;
     const oldPosition = { x: movement.origin.x, y: movement.origin.y };
     const targetPosition = { x: movement.destination.x, y: movement.destination.y };
@@ -300,8 +339,6 @@ Hooks.on('moveToken', (token, movement, options, userId) => {
 
     drawXonCell(mean.x, mean.y, 0x0000ff, 0.8, 10000)
 
-    console.log("mean:", mean)
-
     const closestDirection = {
       x: (mean.x - firstPosition.x) / Math.sqrt(Math.pow(mean.x - firstPosition.x, 2) + Math.pow(mean.y - firstPosition.y, 2)),
       y: (mean.y - firstPosition.y) / Math.sqrt(Math.pow(mean.x - firstPosition.x, 2) + Math.pow(mean.y - firstPosition.y, 2))
@@ -324,19 +361,11 @@ Hooks.on('moveToken', (token, movement, options, userId) => {
         y: 0
       }]
 
-    console.log("Direction", direction)
-
     const movementCardinal = findMinimumDistances(direction, cardinals)
 
-    console.log("Movement cardinal:", movementCardinal)
-
-    cardinals.splice(cardinals.indexOf(movementCardinal, 1))
+    cardinals.splice(cardinals.indexOf(movementCardinal), 1)
 
     const closestCardinal = findMinimumDistances(closestDirection, cardinals)
-
-    // const closestCardinal = {x: 0, y: -1}
-
-    console.log("Closest cardinal:", closestCardinal)
 
     let queue = new PriorityQueue()
     queue.add(firstPosition, 0)
@@ -353,7 +382,6 @@ Hooks.on('moveToken', (token, movement, options, userId) => {
 
     
     if (dot(movementCardinal, closestCardinal) === 0) { // Cardinals are perpendicular
-      console.log("Caso perpendicolare")
       const oppositeCardinal = {x: -movementCardinal.x, y: -movementCardinal.y}
       boundaries.right = firstPosition
       boundaries.left = {
@@ -361,7 +389,6 @@ Hooks.on('moveToken', (token, movement, options, userId) => {
         y: boundaries.right.y + (n-1) * oppositeCardinal.y * canvas.grid.size
       }
     } else {
-      console.log("Caso parallelo")
       const oppositeCardinal = rotateClockwise(movementCardinal)
       boundaries.right = {
         x: Math.floor(n/2) * oppositeCardinal.x * canvas.grid.size + firstPosition.x,
@@ -382,18 +409,15 @@ Hooks.on('moveToken', (token, movement, options, userId) => {
 
       validPositions.push(pos)
 
-      let collisions = checkWallCollision(pos)
+      let collisions = checkWallCollision(pos, boundaries)
 
-      console.log("Collisions:", collisions)
-
-      let positions = getAdjacentPositions(pos)
+      let positions = getAdjacentPositions(pos, boundaries)
 
       for (let i = 0; i < 4; i++) {
         const newPos = positions[i]
         if(!collisions[i] && visited.findIndex((e) => newPos.x === e.x && newPos.y === e.y) === -1) {
-          if (inLeftRightBoundary(newPos, boundaries) && inGrowBoundary(newPos, boundaries))
+          if (inLeftRightBoundary(newPos, boundaries) && inGrowBoundary(newPos, boundaries)) {
             queue.add(newPos, Math.sqrt(Math.pow(newPos.x - firstPosition.x, 2) + Math.pow(newPos.y - firstPosition.y, 2)))
-            console.log("Added", newPos, "to queue")
           }
           else if (inGrowBoundary(newPos, boundaries)) // NOTE: could remove this check if you don't care about followers ending up in front of the leader
             fallbackPositions.add(newPos, Math.sqrt(Math.pow(newPos.x - firstPosition.x, 2) + Math.pow(newPos.y - firstPosition.y, 2)))
@@ -405,17 +429,15 @@ Hooks.on('moveToken', (token, movement, options, userId) => {
 
     // Run this in case there are no valid cells in the boundaries
     if (fallbackPositions.isEmpty && neededPositions > 0) {
-      console.log("No valid positions found, using fallback positions")
+      console.error("No valid positions found, using fallback positions")
       let pos = fallbackPositions.min()
       fallbackPositions.remove()
 
       validPositions.push(pos)
 
-      let collisions = checkWallCollision(pos)
+      let collisions = checkWallCollision(pos, boundaries)
 
-      console.log("Collisions:", collisions)
-
-      let positions = getAdjacentPositions(pos)
+      let positions = getAdjacentPositions(pos, boundaries)
 
       for (let i = 0; i < 4; i++) {
         let newPos = positions[i]
@@ -430,96 +452,71 @@ Hooks.on('moveToken', (token, movement, options, userId) => {
       neededPositions--
     }
 
-    console.log("valid positions: ", validPositions)
     for (const v of validPositions) {
       drawXonCell(v.x, v.y, 0xff0000, 0.8, 10000)
     }
 
-    const maxDistance = 150000
-    for (const f of followers) {
-      const targetPosition = validPositions.shift()
+    const maxDistance = game.settings.get('token-formations', 'max-distance') * canvas.grid.size;
+
+    for (let i = followerLength-1; i >= 0; i--) {
+      const f = followers[i]
+
+      const targetPosition = canvas.grid.getTopLeftPoint(validPositions.shift())
 
       const dist = Math.sqrt(Math.pow(f.x - targetPosition.x, 2) + Math.pow(f.y - targetPosition.y, 2))
-      if (dist > maxDistance) {
-        // TODO: notify the player and break the follow
-        //       Remember that modifying the followers array during iteration could be
-        //       undefined behaviour
+      if (maxDistance !== 0 && dist > maxDistance) {
+        followers.splice(i, 1)
+        ui.notifications.warn("Il target da raggiungere è troppo lontano")
         continue
       }
 
-      let path = f.findMovementPath([
-        {
-          x: f.x, 
-          y: f.y
-        }, 
-        {
-          x: targetPosition.x, 
-          y: targetPosition.y
-        }], 
-        {
-          preview: false, 
-          ignoreWalls: false,
-          tokenShape: f.getShape()
-        })
-
-      if (!path) throw Error("Something went wrong while trying to find a suitable path")
-
-      for (const p of path.result)
-        f.document.update(
-         {
-          x: p.x,
-          y: p.y
-         }
-        )
-
-      /*let queue = new PriorityQueue()
+      let queue = new PriorityQueue()
       queue.add({
-        position: {
+        position: canvas.grid.getTopLeftPoint({
           x: f.x,
           y: f.y
-        },
+        }),
         prev: null 
       }, 0)
 
-      let visited = [{x: f.x, y: f.y}]
+      let visited = [canvas.grid.getTopLeftPoint({x: f.x, y: f.y})]
       while (!queue.isEmpty()) {
         const pos = queue.min()
+        //drawXonCell(pos.x, pos.y, 0x00ff00)
         queue.remove()
 
         if (pos.position.x === targetPosition.x && pos.position.y === targetPosition.y) {
-          console.log("PORCACCIA LA MADONNA")
-          path = []
+          let path = []
           let tmp = pos
           while (tmp.prev !== null) {
-            path.unshift(tmp.position)
+            path.unshift({
+              x: tmp.position.x,
+              y: tmp.position.y
+            })
             tmp = tmp.prev
           }
 
-          for (const p of path) {
-            f.document.update(
-              {
-                x: p.x,
-                y: p.y
-              }
-            )
-          }
+          f.document.move(path, {
+            autoRotate: true,
+            method: "api"
+          })
 
           break
         }
 
-        const collisions = checkWallCollision(pos)
-        const positions = getAdjacentPositions(pos)
-        for (let i = 0; i < 4; i++) {
+        const collisions = checkWallCollision(pos.position, boundaries, true)
+        const positions = getAdjacentPositions(pos.position, boundaries, true)
+        for (let i = 0; i < 8; i++) {
           if (!collisions[i] 
             && visited.findIndex((e) => positions[i].x === e.x && positions[i].y === e.y) === -1
-            && positions[i].x >= 0 && positions[i].x < canvas.dimensions.width
-            && positions[i].y >= 0 && positions[i].y < canvas.dimensions.height
+            && positions[i].x >= canvas.dimensions.sceneRect.x && positions[i].x < canvas.dimensions.sceneRect.x+canvas.dimensions.sceneWidth
+            && positions[i].y >= canvas.dimensions.sceneRect.y && positions[i].y < canvas.dimensions.sceneRect.y+canvas.dimensions.sceneHeight
           ) {
             queue.add({position: positions[i], prev:pos}, Math.sqrt(Math.pow(f.x - positions[i].x, 2) + Math.pow(f.y - positions[i].y, 2)))
+            visited.push(positions[i])
           }
-          visited.push(positions[i])
         }
-      }*/
+      }
     }
 
 
@@ -565,12 +562,15 @@ function getRelevantWalls(ray) {
   });
 }
 
-function checkWallCollision(position) {
+function checkWallCollision(position, boundaries, checkDiagonals = false) {
   let collisions = []
-  for (let i = 0; i < 4; i++) {
+  const tmp = rotateClockwise(boundaries.growDirection)
+  const d = Math.atan2(tmp.y, tmp.x)
+  for (let i = 0; i < 2; i++) {
     const ray = foundry.canvas.geometry.Ray.fromAngle(
-      position.x + canvas.grid.size/2, position.y + canvas.grid.size/2, i * Math.PI / 2, canvas.grid.size
+      position.x + canvas.grid.size/2, position.y + canvas.grid.size/2, d + i * Math.PI, canvas.grid.size
     );
+    //drawRay(ray)
     const relevantWalls = getRelevantWalls(ray);
     let collides = false
     for (const wall of relevantWalls) {
@@ -584,6 +584,64 @@ function checkWallCollision(position) {
       }
     }
     collisions.push(collides);
+  }
+
+  const d2 = Math.atan2(boundaries.growDirection.y, boundaries.growDirection.x)
+  for (let i = 0; i < 2; i++) {
+    const ray = foundry.canvas.geometry.Ray.fromAngle(
+      position.x + canvas.grid.size/2, position.y + canvas.grid.size/2, d2 + i * Math.PI, canvas.grid.size
+    );
+    //drawRay(ray)
+    const relevantWalls = getRelevantWalls(ray);
+    let collides = false
+    for (const wall of relevantWalls) {
+      if (foundry.utils.lineSegmentIntersects(
+        ray.A, ray.B,
+        { x: wall.document.c[0], y: wall.document.c[1] },
+        { x: wall.document.c[2], y: wall.document.c[3] }
+      )) { 
+        collides = true;
+        break;
+      }
+    }
+    collisions.push(collides);
+  }
+
+  if (checkDiagonals) {
+    for (let i = 0; i < 4; i++) {
+      const directRay = foundry.canvas.geometry.Ray.fromAngle(
+        position.x + canvas.grid.size/2, position.y + canvas.grid.size/2, ((1 + 2*i) / 4) * Math.PI, canvas.grid.size*Math.SQRT2
+      );
+      const ray1 = foundry.canvas.geometry.Ray.fromAngle(
+        position.x + canvas.grid.size/2, position.y + canvas.grid.size/2, (i / 2) * Math.PI, canvas.grid.size
+      );
+      const ray2 = foundry.canvas.geometry.Ray.fromAngle(
+        position.x + canvas.grid.size/2, position.y + canvas.grid.size/2, ((1+i) / 2) * Math.PI, canvas.grid.size
+      );
+      //drawRay(directRay, 0x00ff00)
+      const relevantWalls = getRelevantWalls(directRay).concat(getRelevantWalls(ray1)).concat(getRelevantWalls(ray2));
+      let collides = false
+      for (const wall of relevantWalls) {
+        if (foundry.utils.lineSegmentIntersects(
+            directRay.A, directRay.B,
+            { x: wall.document.c[0], y: wall.document.c[1] },
+            { x: wall.document.c[2], y: wall.document.c[3] }
+          ) || foundry.utils.lineSegmentIntersects(
+            ray1.A, ray1.B,
+            { x: wall.document.c[0], y: wall.document.c[1] },
+            { x: wall.document.c[2], y: wall.document.c[3] }
+          ) || foundry.utils.lineSegmentIntersects(
+            ray2.A, ray2.B,
+            { x: wall.document.c[0], y: wall.document.c[1] },
+            { x: wall.document.c[2], y: wall.document.c[3] }
+          )
+        ) { 
+          collides = true;
+          break;
+        }
+      }
+      collisions.push(collides);
+    }
   }
 
   return collisions
@@ -629,21 +687,6 @@ window.TokenFormations = {
   },
   
   /**
-   * Remove a follower from a leader's formation
-   * @param {string} leaderId - The ID of the leader token
-   * @param {string} followerId - The ID of the follower token
-   */
-  removeFollower(leaderId, followerId) {
-    if (formations.has(leaderId)) {
-      formations.get(leaderId).splice(formations.get(leaderId).indexOf(followerId), 1);
-      if (formations.get(leaderId).length === 0) {
-        formations.delete(leaderId);
-      }
-      console.log(`${MODULE_NAME} | Removed follower ${followerId} from leader ${leaderId}`);
-    }
-  },
-  
-  /**
    * Get all followers for a leader
    * @param {string} leaderId - The ID of the leader token
    * @returns {Array<string>} Array of follower IDs
@@ -651,13 +694,16 @@ window.TokenFormations = {
   getFollowers(leaderId) {
     return formations.get(leaderId) || new Array();
   },
-  
+
   /**
-   * Get all formations
-   * @returns {Map<string, Set<string>>} Map of leader IDs to follower sets
+   * Get a list of all the followers for all leaders
    */
-  getAllFormations() {
-    return formations;
+  getAllFollowers() {
+    let allFollowers = []
+    for (const l in formations) {
+      allFollowers.concat(formations[l])
+    }
+    return allFollowers
   },
   
   /**
@@ -670,33 +716,20 @@ window.TokenFormations = {
   },
   
   /**
-   * Find the leader of a follower token
-   * @param {string} followerId - The ID of the follower token
-   * @returns {string|null} The leader ID or null if not found
-   */
-  findLeader(followerId) {
-    for (const [leaderId, followers] of formations) {
-      if (followers.has(followerId)) {
-        return leaderId;
-      }
-    }
-    return null;
-  },
-  
-  /**
    * Remove a token from all formations (as leader or follower)
    * @param {string} tokenId - The ID of the token to remove
    */
-  removeToken(tokenId) {
+  ///// TODO: FIX
+  removeToken(token) {
     // Remove as leader
-    if (formations.has(tokenId)) {
-      formations.delete(tokenId);
-      console.log(`${MODULE_NAME} | Removed leader ${tokenId} and disbanded formation`);
+    if (formations.has(token.id)) {
+      formations.delete(token.id);
+      console.log(`${MODULE_NAME} | Removed leader ${token.id} and disbanded formation`);
     }
     
     // Remove as follower
     for (const [leaderId, followers] of formations) {
-      if (followers.has(tokenId)) {
+      if (followers.findIndex(e => e.id === tokenId) !== -1) {
         followers.delete(tokenId);
         if (followers.size === 0) {
           formations.delete(leaderId);
