@@ -18,14 +18,14 @@ export function createFollowingIndicator(token, leader) {
     corner === 'top-right' ? { x: tokenSize.width, y: 0 } :
     corner === 'bottom-left' ? { x: 0, y: tokenSize.height } :
     corner === 'bottom-right' ? { x: tokenSize.width, y: tokenSize.height } :
-    { x: 0, y: 0 }; // top-left
+    { x: 0, y: 0 };
 
-  
+  g.position.set(offset.x, offset.y);
+
   const visible = game.settings.get('token-formations', 'showFollowingIndicator');
   const indicatorAlpha = visible ? 1 : 0;
   const borderAlpha = visible && game.settings.get('token-formations', 'showIndicatorBorder') ? 1 : 0;
 
-  g.moveTo(offset.x, offset.y);
   g.lineStyle(
     game.settings.get('token-formations', 'indicatorBorderThickness'),
     game.settings.get('token-formations', 'indicatorColor'),
@@ -55,38 +55,15 @@ export function createFollowingIndicator(token, leader) {
 
 function updateAllFollowingIndicators() {
   canvas.tokens.placeables.forEach(token => {
-    // Aggiorna alpha di tutti i child indicatori
-    const visible = game.settings.get('token-formations', 'showFollowingIndicator');
-    const indicatorAlpha = visible ? 1 : 0;
-    const borderAlpha = visible && game.settings.get('token-formations', 'showIndicatorBorder') ? 1 : 0;
-
+    let leader = null;
     for (const child of token.children) {
       if (child.isFollowingIndicator && child.token === token) {
-        // Aggiorna trasparenza per sprite
-        if (child instanceof PIXI.Sprite) {
-          child.alpha = indicatorAlpha;
-        }
-        // Aggiorna trasparenza per graphics
-        if (child instanceof PIXI.Graphics) {
-          child.clear();
-          const tokenSize = token.document.getSize();
-          const corner = game.settings.get('token-formations', 'indicatorCorner');
-          const offset =
-            corner === 'top-right' ? { x: tokenSize.width, y: 0 } :
-            corner === 'bottom-left' ? { x: 0, y: tokenSize.height } :
-            corner === 'bottom-right' ? { x: tokenSize.width, y: tokenSize.height } :
-            { x: 0, y: 0 }; // top-left
-
-          child.moveTo(offset.x, offset.y);
-          child.lineStyle(
-            game.settings.get('token-formations', 'indicatorBorderThickness'),
-            game.settings.get('token-formations', 'indicatorColor'),
-            borderAlpha
-          );
-          child.drawCircle(0, 0, game.settings.get('token-formations', 'indicatorSize'));
-        }
+        leader = child.leader;
+        break;
       }
     }
+    removeFollowingIndicator(token);
+    if (leader) createFollowingIndicator(token, leader);
   });
 }
 

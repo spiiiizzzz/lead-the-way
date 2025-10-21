@@ -60,7 +60,7 @@ Hooks.once('ready', () => {
             
             ui.notifications.info(
               `Added ${selectedToken.name} as follower to ${leader.name}`,
-              {permanent: false}
+              { permanent: false }
             );
 
             gui.createFollowingIndicator(selectedToken, leader);
@@ -95,8 +95,16 @@ Hooks.once('ready', () => {
       }
     }
   });
-});
 
+  game.settings.register('token-formations', 'queue-width', {
+    name: "Larghezza della formazione",
+    hint: "Imposta la larghezza (in celle di griglia) della formazione dei seguaci.",
+    scope: 'world',
+    config: true,
+    type: Number,
+    default: 2,
+  });
+});
 
 function findMinimumDistances (source, distances) {
   let minDistance = Number.MAX_SAFE_INTEGER
@@ -125,10 +133,21 @@ function inLeftRightBoundary (pos, boundaries) {
   console.log("Pos:", pos)
   console.log("Boundaries:", boundaries)
 
+  if (boundaries.left.x === boundaries.right.x && boundaries.left.y === boundaries.right.y) {
+    console.log("InLRBoundary -> Equal boundaries");
+    if (boundaries.growDirection.x === 0) {
+      if(pos.x === boundaries.right.x) return true
+      return false
+    } else {
+      if(pos.y === boundaries.right.y) return true
+      return false
+    }
+  }
+
   if (boundaries.left.x === boundaries.right.x) {
     const min = Math.min(boundaries.left.y, boundaries.right.y)
     const max = Math.max(boundaries.left.y, boundaries.right.y)
-
+    console.log("InLRBoundary -> Min:", min, "Max:", max);
     if (pos.y >= min && pos.y <= max) return true;
     return false
   } else {
@@ -330,7 +349,7 @@ Hooks.on('moveToken', (token, movement, options, userId) => {
       growDirection: closestCardinal
     }
 
-    let n = 2
+    let n = game.settings.get('token-formations', 'queue-width');
 
     
     if (dot(movementCardinal, closestCardinal) === 0) { // Cardinals are perpendicular
@@ -374,6 +393,8 @@ Hooks.on('moveToken', (token, movement, options, userId) => {
         if(!collisions[i] && visited.findIndex((e) => newPos.x === e.x && newPos.y === e.y) === -1) {
           if (inLeftRightBoundary(newPos, boundaries) && inGrowBoundary(newPos, boundaries))
             queue.add(newPos, Math.sqrt(Math.pow(newPos.x - firstPosition.x, 2) + Math.pow(newPos.y - firstPosition.y, 2)))
+            console.log("Added", newPos, "to queue")
+          }
           else if (inGrowBoundary(newPos, boundaries)) // NOTE: could remove this check if you don't care about followers ending up in front of the leader
             fallbackPositions.add(newPos, Math.sqrt(Math.pow(newPos.x - firstPosition.x, 2) + Math.pow(newPos.y - firstPosition.y, 2)))
         }
@@ -384,6 +405,7 @@ Hooks.on('moveToken', (token, movement, options, userId) => {
 
     // Run this in case there are no valid cells in the boundaries
     if (fallbackPositions.isEmpty && neededPositions > 0) {
+      console.log("No valid positions found, using fallback positions")
       let pos = fallbackPositions.min()
       fallbackPositions.remove()
 
