@@ -281,10 +281,12 @@ Hooks.on('moveToken', (token, movement, options, userId) => {
     };
     const directionAngle = Math.atan2(direction.y, direction.x);
 
-    const firstPosition = {
+    let firstPosition = {
       x: targetPosition.x - direction.x * canvas.grid.size,
       y: targetPosition.y - direction.y * canvas.grid.size
     };
+
+    firstPosition = canvas.grid.getSnappedPosition( firstPosition.x, firstPosition.y )
 
     const sum = (followers.reduce((acc, curr) => {
       return {x: curr.x + acc.x, y: curr.y + acc.y} 
@@ -384,10 +386,12 @@ Hooks.on('moveToken', (token, movement, options, userId) => {
 
       console.log("Collisions:", collisions)
 
-      for (const newPos of getAdjacentPositions(pos)) {
-        if (/*!collisions[i] && */ visited.findIndex((e) => newPos.x === e.x && newPos.y === e.y) === -1) {
-          console.log("New Pos in left-right boundary:", inLeftRightBoundary(newPos, boundaries))
-          if (inLeftRightBoundary(newPos, boundaries) && inGrowBoundary(newPos, boundaries)) {
+      let positions = getAdjacentPositions(pos)
+
+      for (let i = 0; i < 4; i++) {
+        const newPos = positions[i]
+        if(!collisions[i] && visited.findIndex((e) => newPos.x === e.x && newPos.y === e.y) === -1) {
+          if (inLeftRightBoundary(newPos, boundaries) && inGrowBoundary(newPos, boundaries))
             queue.add(newPos, Math.sqrt(Math.pow(newPos.x - firstPosition.x, 2) + Math.pow(newPos.y - firstPosition.y, 2)))
             console.log("Added", newPos, "to queue")
           }
@@ -411,9 +415,12 @@ Hooks.on('moveToken', (token, movement, options, userId) => {
 
       console.log("Collisions:", collisions)
 
-      for (const newPos of getAdjacentPositions(pos)) {
-        if(/*!collisions[i] 
-            && */visited.findIndex((e) => newPos.x === e.x && newPos.y === e.y) === -1
+      let positions = getAdjacentPositions(pos)
+
+      for (let i = 0; i < 4; i++) {
+        let newPos = positions[i]
+        if(!collisions[i] 
+            && visited.findIndex((e) => newPos.x === e.x && newPos.y === e.y) === -1
             && inGrowBoundary(newPos, boundaries)
         ) {
             fallbackPositions.add(newPos, Math.sqrt(Math.pow(newPos.x - firstPosition.x, 2) + Math.pow(newPos.y - firstPosition.y, 2)))
@@ -428,10 +435,91 @@ Hooks.on('moveToken', (token, movement, options, userId) => {
       drawXonCell(v.x, v.y, 0xff0000, 0.8, 10000)
     }
 
+    const maxDistance = 150000
     for (const f of followers) {
-      // check distance and break in case it's too far
+      const targetPosition = validPositions.shift()
 
-      // do dijkstra
+      const dist = Math.sqrt(Math.pow(f.x - targetPosition.x, 2) + Math.pow(f.y - targetPosition.y, 2))
+      if (dist > maxDistance) {
+        // TODO: notify the player and break the follow
+        //       Remember that modifying the followers array during iteration could be
+        //       undefined behaviour
+        continue
+      }
+
+      let path = f.findMovementPath([
+        {
+          x: f.x, 
+          y: f.y
+        }, 
+        {
+          x: targetPosition.x, 
+          y: targetPosition.y
+        }], 
+        {
+          preview: false, 
+          ignoreWalls: false,
+          tokenShape: f.getShape()
+        })
+
+      if (!path) throw Error("Something went wrong while trying to find a suitable path")
+
+      for (const p of path.result)
+        f.document.update(
+         {
+          x: p.x,
+          y: p.y
+         }
+        )
+
+      /*let queue = new PriorityQueue()
+      queue.add({
+        position: {
+          x: f.x,
+          y: f.y
+        },
+        prev: null 
+      }, 0)
+
+      let visited = [{x: f.x, y: f.y}]
+      while (!queue.isEmpty()) {
+        const pos = queue.min()
+        queue.remove()
+
+        if (pos.position.x === targetPosition.x && pos.position.y === targetPosition.y) {
+          console.log("PORCACCIA LA MADONNA")
+          path = []
+          let tmp = pos
+          while (tmp.prev !== null) {
+            path.unshift(tmp.position)
+            tmp = tmp.prev
+          }
+
+          for (const p of path) {
+            f.document.update(
+              {
+                x: p.x,
+                y: p.y
+              }
+            )
+          }
+
+          break
+        }
+
+        const collisions = checkWallCollision(pos)
+        const positions = getAdjacentPositions(pos)
+        for (let i = 0; i < 4; i++) {
+          if (!collisions[i] 
+            && visited.findIndex((e) => positions[i].x === e.x && positions[i].y === e.y) === -1
+            && positions[i].x >= 0 && positions[i].x < canvas.dimensions.width
+            && positions[i].y >= 0 && positions[i].y < canvas.dimensions.height
+          ) {
+            queue.add({position: positions[i], prev:pos}, Math.sqrt(Math.pow(f.x - positions[i].x, 2) + Math.pow(f.y - positions[i].y, 2)))
+          }
+          visited.push(positions[i])
+        }
+      }*/
     }
 
 
