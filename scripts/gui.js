@@ -150,17 +150,18 @@ Hooks.on("getSceneControlButtons", controls => {
   controls.tokens.tools.tutorial = {
     name: "tokenFormationsInfo",
     title: game.i18n.localize("token-formations.buttons.info"),
-    order: 5,
+    order: Object.keys(controls.tokens.tools).length,
     icon: "fa-solid fa-info-circle",
     button: false,
     visible: true
   }
+  
   console.log("Controls:", controls)
   controls.tokens.tools.clearFormations = {
     name: "clearFormations",
     title: game.i18n.localize("token-formations.buttons.clearFormations"),
     icon: "fa-solid fa-users-slash",
-    order: Object.keys(controls.tokens.tools).length,
+    order: Object.keys(controls.tokens.tools).length + 1,
     button: true,
     visible: game.user.isGM,
     onChange: async () => {
