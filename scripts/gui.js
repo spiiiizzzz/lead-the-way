@@ -1,4 +1,5 @@
 export function removeFollowingIndicator(token) {
+  if(!token?.children) return;
   for (const child of [...token.children]) {
     if (child.isFollowingIndicator && child.token === token) {
       token.removeChild(child);
@@ -210,5 +211,6 @@ Hooks.on("getSceneControlButtons", controls => {
     }
 
   }
-  });
+});
+  
 

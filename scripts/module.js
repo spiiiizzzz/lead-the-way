@@ -24,7 +24,7 @@ const MODULE_NAME = 'Token Formations';
 
 // Formation data structure: Map<leaderId, Set<followerId>>
 const formations = new Map();
-
+let enabled = true;
 
 
 /**
@@ -153,20 +153,41 @@ Hooks.once('ready', () => {
   });
 });
 
-Hooks.on('destroyToken', (object) => {
+Hooks.on('combatStart', (combat) => { 
+  enabled = false;
+  ui.notifications.info("Combat started | Disabling formations") //TODO: localize
+  for (const f of window.TokenFormations.getAllFollowers()) {
+      gui.removeFollowingIndicator(f)
+    }
+});
+
+Hooks.on('deleteCombat', (combat) => {
+  ui.notifications.info("Combat ended | Enabling formations") //TODO: localize
+  enabled = true;
+  for(const [l,f] of formations) {
+      for (const follower of f) {
+          gui.createFollowingIndicator(follower, l);
+      }
+  }
+});
+
+Hooks.on('deleteToken', (object) => {
   if (
-      window.TokenFormations.getAllFollowers().findIndex((e) => {e.id === object.id}) !== -1 
-      && !window.TokenFormations.isLeader(object)
+    window.TokenFormations.getAllFollowers().findIndex((e) => {e.id === object.id}) !== -1 
+    && !window.TokenFormations.isLeader(object)
   ) {
     return
   } else {
+    console.log("DESTROY | Removing token", object)
     window.TokenFormations.removeToken(object)
   }
 })
 
 Hooks.on('moveToken', (token, movement, options, userId) => {
+  if (!enabled) return;
   if (movement.method !== "api" && window.TokenFormations.getAllFollowers().findIndex((e) => e.id === token.id) !== -1) {
     window.TokenFormations.removeToken(token)
+    ui.notifications.info("Token rimosso per movimento manuale") //TODO: localize
     return
   }
 
@@ -184,15 +205,13 @@ Hooks.on('moveToken', (token, movement, options, userId) => {
       x: (targetPosition.x - oldPosition.x) / Math.sqrt(Math.pow(oldPosition.x - targetPosition.x, 2) + Math.pow(oldPosition.y - targetPosition.y, 2)),
       y: (targetPosition.y - oldPosition.y) / Math.sqrt(Math.pow(oldPosition.x - targetPosition.x, 2) + Math.pow(oldPosition.y - targetPosition.y, 2))
     };
-    const directionAngle = Math.atan2(direction.y, direction.x);
 
     let firstPosition = {
-      x: targetPosition.x - direction.x * canvas.grid.size,
-      y: targetPosition.y - direction.y * canvas.grid.size
+      x: targetPosition.x - Math.round(direction.x) * canvas.grid.size,
+      y: targetPosition.y - Math.round(direction.y) * canvas.grid.size
     };
-
+        
     firstPosition = canvas.grid.getTopLeftPoint(firstPosition)
-
     const sum = (followers.reduce((acc, curr) => {
       return {x: curr.x + acc.x, y: curr.y + acc.y} 
     }, {
@@ -203,7 +222,7 @@ Hooks.on('moveToken', (token, movement, options, userId) => {
     
     const mean = { x: sum.x / followers.length, y: sum.y / followers.length}
 
-    drawXonCell(mean.x, mean.y, 0x0000ff, 0.8, 10000)
+    //drawXonCell(mean.x, mean.y, 0x0000ff, 0.8, 10000)
 
     const closestDirection = {
       x: (mean.x - firstPosition.x) / Math.sqrt(Math.pow(mean.x - firstPosition.x, 2) + Math.pow(mean.y - firstPosition.y, 2)),
@@ -246,7 +265,7 @@ Hooks.on('moveToken', (token, movement, options, userId) => {
 
     let n = game.settings.get('token-formations', 'queue-width');
 
-    
+    //drawXonCell(firstPosition.x, firstPosition.y, 0xff0000, 1, 1000)
     if (dot(movementCardinal, closestCardinal) === 0) { // Cardinals are perpendicular
       const oppositeCardinal = {x: -movementCardinal.x, y: -movementCardinal.y}
       boundaries.right = firstPosition
@@ -267,7 +286,7 @@ Hooks.on('moveToken', (token, movement, options, userId) => {
       }
     }
 
-    drawSegmentBetweenCells(boundaries.right.x, boundaries.right.y, boundaries.left.x, boundaries.left.y)
+    //drawSegmentBetweenCells(boundaries.right.x, boundaries.right.y, boundaries.left.x, boundaries.left.y)
 
     while (!queue.isEmpty() && neededPositions > 0) {
       let pos = queue.min()
@@ -320,7 +339,7 @@ Hooks.on('moveToken', (token, movement, options, userId) => {
     }
 
     for (const v of validPositions) {
-      drawXonCell(v.x, v.y, 0xff0000, 0.8, 10000)
+      //drawXonCell(v.x, v.y, 0xff0000, 0.8, 10000)
     }
 
     const maxDistance = game.settings.get('token-formations', 'max-distance') * canvas.grid.size;
