@@ -159,7 +159,7 @@ Hooks.on('moveToken', (token, movement, options, userId) => {
       y: targetPosition.y - direction.y * canvas.grid.size
     };
 
-    firstPosition = canvas.grid.getSnappedPosition( firstPosition.x, firstPosition.y )
+    firstPosition = canvas.grid.getTopLeftPoint(firstPosition)
 
     const sum = (followers.reduce((acc, curr) => {
       return {x: curr.x + acc.x, y: curr.y + acc.y} 
@@ -263,7 +263,8 @@ Hooks.on('moveToken', (token, movement, options, userId) => {
 
     // Run this in case there are no valid cells in the boundaries
     if (fallbackPositions.isEmpty && neededPositions > 0) {
-      console.error("No valid positions found, using fallback positions")
+      // TODO: Localize
+      ui.notifications.warn("No valid location found")
       let pos = fallbackPositions.min()
       fallbackPositions.remove()
 
@@ -297,7 +298,9 @@ Hooks.on('moveToken', (token, movement, options, userId) => {
 
       const targetPosition = canvas.grid.getTopLeftPoint(validPositions.shift())
 
-      const dist = Math.sqrt(Math.pow(f.x - targetPosition.x, 2) + Math.pow(f.y - targetPosition.y, 2))
+      const currentPosition = f.document.movement.destination ? f.document.movement.destination : {x: f.x, y: f.y}
+
+      const dist = Math.sqrt(Math.pow(currentPosition.x - targetPosition.x, 2) + Math.pow(currentPosition.y - targetPosition.y, 2))
       if (maxDistance !== 0 && dist > maxDistance) {
         followers.splice(i, 1)
         ui.notifications.warn("Il target da raggiungere è troppo lontano")
@@ -307,13 +310,13 @@ Hooks.on('moveToken', (token, movement, options, userId) => {
       let queue = new PriorityQueue()
       queue.add({
         position: canvas.grid.getTopLeftPoint({
-          x: f.x,
-          y: f.y
+          x: currentPosition.x,
+          y: currentPosition.y
         }),
         prev: null 
       }, 0)
 
-      let visited = [canvas.grid.getTopLeftPoint({x: f.x, y: f.y})]
+      let visited = [canvas.grid.getTopLeftPoint({x: currentPosition.x, y: currentPosition.y})]
       while (!queue.isEmpty()) {
         const pos = queue.min()
         //drawXonCell(pos.x, pos.y, 0x00ff00)
@@ -332,7 +335,10 @@ Hooks.on('moveToken', (token, movement, options, userId) => {
 
           f.document.move(path, {
             autoRotate: true,
-            method: "api"
+            method: "api",
+            constrainOptions: {
+              ignoreWalls: true
+            }
           })
 
           break
@@ -346,7 +352,7 @@ Hooks.on('moveToken', (token, movement, options, userId) => {
             && positions[i].x >= canvas.dimensions.sceneRect.x && positions[i].x < canvas.dimensions.sceneRect.x+canvas.dimensions.sceneWidth
             && positions[i].y >= canvas.dimensions.sceneRect.y && positions[i].y < canvas.dimensions.sceneRect.y+canvas.dimensions.sceneHeight
           ) {
-            queue.add({position: positions[i], prev:pos}, Math.sqrt(Math.pow(f.x - positions[i].x, 2) + Math.pow(f.y - positions[i].y, 2)))
+            queue.add({position: positions[i], prev:pos}, Math.sqrt(Math.pow(currentPosition.x - positions[i].x, 2) + Math.pow(currentPosition.y - positions[i].y, 2)))
             visited.push(positions[i])
           }
         }
