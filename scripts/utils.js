@@ -203,7 +203,8 @@ export function getRelevantWalls(ray) {
         Math.min(c[0], c[2]) <= maxX &&
         Math.max(c[1], c[3]) >= minY &&
         Math.min(c[1], c[3]) <= maxY &&
-        wall.document.move !== CONST.WALL_MOVEMENT_TYPES.NONE
+        wall.document.move !== CONST.WALL_MOVEMENT_TYPES.NONE &&
+        wall.document.ds !== CONST.WALL_DOOR_STATES.OPEN
         );
     });
 }
