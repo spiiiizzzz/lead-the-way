@@ -2,6 +2,7 @@ export function removeFollowingIndicator(token) {
   for (const child of [...token.children]) {
     if (child.isFollowingIndicator && child.token === token) {
       token.removeChild(child);
+      child.destroy()
     }
   }
 }
@@ -171,7 +172,7 @@ Hooks.on("getSceneControlButtons", controls => {
       });
       if (proceed) {
           ui.notifications.info(game.i18n.localize("token-formations.messages.clearedAll"));
-          //TODO: clear formations
+          window.TokenFormations.clearAllFormations()
       } else {
         console.log("Do not proceed.");
       }
@@ -190,16 +191,20 @@ Hooks.on("getSceneControlButtons", controls => {
         ui.notifications.warn(game.i18n.localize("token-formations.messages.noTokenSelected"));
         return;
       }
-      const proceed = await foundry.applications.api.DialogV2.confirm({
-        content: game.i18n.localize("token-formations.messages.confirmDisbandFormation"),
-        rejectClose: false,
-        modal: true
-      });
-      if (proceed) {
-          ui.notifications.info(game.i18n.localize("token-formations.messages.disbandedFormation"));
-          //TODO: disband formation
+      if (canvas.tokens.controlled.length !== 1 || !window.TokenFormations.isLeader(canvas.tokens.controlled[0])) {
+        ui.notifications.warn("seleziona il leader"); // TODO: localize
       } else {
-        console.log("Do not proceed.");
+        const proceed = await foundry.applications.api.DialogV2.confirm({
+          content: game.i18n.localize("token-formations.messages.confirmDisbandFormation"),
+          rejectClose: false,
+          modal: true
+        });
+        if (proceed) {
+          ui.notifications.info(game.i18n.localize("token-formations.messages.disbandedFormation"));
+          window.TokenFormations.removeToken(canvas.tokens.controlled[0])
+        } else {
+          console.log("Do not proceed.");
+        }
       }
     }
 
