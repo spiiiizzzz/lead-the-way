@@ -23,7 +23,6 @@ const MODULE_ID = 'token-formations';
 const MODULE_NAME = 'Token Formations';
 
 // Formation data structure: Map<leaderId, Set<followerId>>
-const formations = new Map();
 let enabled = true;
 
 
@@ -33,6 +32,8 @@ let enabled = true;
 Hooks.once('init', () => {
   console.log(`${MODULE_NAME} | ${game.i18n.localize("token-formations.messages.init")}`);
   
+  
+
   // Register module settings here if needed
   // game.settings.register(MODULE_ID, 'setting-name', {
   //   name: 'Setting Name',
@@ -49,75 +50,20 @@ Hooks.once('init', () => {
  */
 Hooks.once('ready', () => {
   console.log(`${MODULE_NAME} | ${game.i18n.localize("token-formations.messages.ready")}`);
-  
+
   // Add keyboard event listener for F key
-  document.addEventListener('keydown', (event) => {
+  document.addEventListener('keydown', async (event) => {
     // Check if F key is pressed (keyCode 70 or key 'f'/'F')
     if (event.key === 'f' || event.key === 'F') {
       // Only trigger if not typing in an input field
       if (!event.target.matches('input, textarea, [contenteditable]')) {
-        
+
         // Get the currently selected tokens and hovered token
         const selectedTokens = canvas.tokens.controlled;
         const hoveredToken = window.TokenFormations.hoveredToken;
-        
+
         if (selectedTokens.length === 1 && hoveredToken) {
-          const selectedToken = selectedTokens[0]; // This becomes the follower
-          let leader = hoveredToken; // This becomes the leader
-
-          // change the leader in case the hovered token is already following someone else
-          for (const [l, _] of formations) {
-            if (window.TokenFormations.getFollowers(l).findIndex((e) => e.id === leader.id) !== -1) {
-              leader = l
-            }
-          }
-
-          // Don't allow a token to follow itself
-          if (selectedToken.id !== leader.id) {
-            // if you're already in another list, remove yourself from there
-            if (window.TokenFormations.getFollowers(leader).findIndex((e) => e.id === selectedToken.id) !== -1) {
-              window.TokenFormations.removeToken(selectedToken)
-            }
-            
-            // Add the selected token as a follower to the hovered token (leader)
-            if (window.TokenFormations.isLeader(selectedToken)) {
-              let followers = window.TokenFormations.getFollowers(selectedToken)
-              window.TokenFormations.removeToken(selectedToken)
-              window.TokenFormations.addFollower(leader, selectedToken)
-              for (const f of followers) {
-                window.TokenFormations.addFollower(leader, f)
-              }
-            } else {
-              window.TokenFormations.addFollower(leader, selectedToken);
-            }
-              
-            
-            ui.notifications.info(
-              game.i18n.format("token-formations.messages.addedFollower", { follower: selectedToken.name, leader: leader.name }),
-              { permanent: false }
-            );
-
-            // Print the updated follower list for the leader (hovered token)
-            const followers = window.TokenFormations.getFollowers(leader);
-            console.log(`${MODULE_NAME} | Leader: ${leader.name} (ID: ${leader.id})`);
-            
-            if (followers.size > 0) {
-              console.log(`${MODULE_NAME} | ${game.i18n.format("token-formations.messages.followers", { count: followers.size })}`);
-              followers.forEach(followerId => {
-                const followerToken = canvas.tokens.get(followerId);
-                if (followerToken) {
-                  console.log(`${MODULE_NAME} |   - ${followerToken.name} (ID: ${followerId})`);
-                } else {
-                  console.log(`${MODULE_NAME} |   - Unknown token (ID: ${followerId})`);
-                }
-              });
-            } else {
-              console.log(`${MODULE_NAME} | ${game.i18n.localize("token-formations.messages.noFollowers")}`);
-            }
-            
-          } else {
-            ui.notifications.warn(game.i18n.localize("token-formations.messages.noSelfFollow"));
-          }
+          await window.TokenFormations.addFollower(hoveredToken, selectedTokens[0])  
         } else if (selectedTokens.length === 0) {
           ui.notifications.warn(game.i18n.localize("token-formations.messages.selectToken"));
         } else if (selectedTokens.length > 1) {
@@ -153,21 +99,38 @@ Hooks.once('ready', () => {
   });
 });
 
-Hooks.on('combatStart', (combat) => { 
-  enabled = false;
+Hooks.on('combatStart', async (combat) => {
   ui.notifications.info("Combat started | Disabling formations") //TODO: localize
-  for (const f of window.TokenFormations.getAllFollowers()) {
-      gui.removeFollowingIndicator(f)
+  for (const f of await window.TokenFormations.getAllFollowers()) {
+      if (f.inCombat) gui.removeFollowingIndicator(f)
     }
 });
 
-Hooks.on('deleteCombat', (combat) => {
+Hooks.on('createCombatant', async (combatant) => {
+  for (const f of await window.TokenFormations.getAllFollowers()) {
+      if (f.inCombat) gui.removeFollowingIndicator(f)
+    }
+});
+
+
+Hooks.on('deleteCombat', async (combat) => {
   ui.notifications.info("Combat ended | Enabling formations") //TODO: localize
-  enabled = true;
-  for(const [l,f] of formations) {
-      for (const follower of f) {
-          gui.createFollowingIndicator(follower, l);
-      }
+  for (let l of getLeaders()) {
+    for(const f of await window.TokenFormations.getFollowers(l)) {
+        if (!f.inCombat) {
+            gui.createFollowingIndicator(f, l);
+        }
+    }
+  }
+});
+
+Hooks.on('deleteCombatant', async (combatant) => {
+  for (let l of getLeaders()) {
+    for(const f of await window.TokenFormations.getFollowers(l)) {
+        if (!f.inCombat) {
+            gui.createFollowingIndicator(f, l);
+        }
+    }
   }
 });
 
@@ -183,20 +146,21 @@ Hooks.on('deleteToken', (object) => {
   }
 })
 
-Hooks.on('moveToken', (token, movement, options, userId) => {
-  if (!enabled) return;
-  if (movement.method !== "api" && window.TokenFormations.getAllFollowers().findIndex((e) => e.id === token.id) !== -1) {
-    window.TokenFormations.removeToken(token)
+Hooks.on('moveToken', async (tokenDocument, movement, options, userId) => {
+  let token = canvas.tokens.objects.children.find((e) => e.id === tokenDocument.id) 
+  if (token.inCombat) return;
+  if (movement.method !== "api" && (await window.TokenFormations.getAllFollowers()).findIndex((e) => e.id === token.id) !== -1) {
+    await window.TokenFormations.removeToken(token)
     ui.notifications.info("Token rimosso per movimento manuale") //TODO: localize
     return
   }
 
-  if (window.TokenFormations.isLeader(token)) {
+  if (await window.TokenFormations.isLeader(token)) {
     if (movement.method === "api") {
       return
     }
 
-    const followers = window.TokenFormations.getFollowers(token);
+    const followers = await window.TokenFormations.getFollowers(token);
     const followerLength = followers.length;
     const oldPosition = { x: movement.origin.x, y: movement.origin.y };
     const targetPosition = { x: movement.destination.x, y: movement.destination.y };
@@ -347,6 +311,10 @@ Hooks.on('moveToken', (token, movement, options, userId) => {
     for (let i = followerLength-1; i >= 0; i--) {
       const f = followers[i]
 
+      if (f.inCombat) {
+        continue
+      }
+
       const targetPosition = canvas.grid.getTopLeftPoint(validPositions.shift())
 
       const currentPosition = f.document.movement.destination ? f.document.movement.destination : {x: f.x, y: f.y}
@@ -437,21 +405,82 @@ window.TokenFormations = {
   MODULE_NAME,
   
   // Formation management methods
-  formations,
   hoveredToken: null, // Currently hovered token
+
+  fromId(id) {
+    return canvas.tokens.children.find(e => e.id === id)
+  },
+
+  async getLeaders() {
+    return Array.from(canvas.tokens.objects.children.filter(async (t) => (await this.isLeader(t))))
+  },
+
+  async resetFlags() {
+    for (let l of await this.getLeaders()) {
+      await l.document.setFlag(MODULE_ID, "followers", null)
+    }
+  },
   
   /**
    * Add a follower to a leader's formation
    * @param {string} leaderId - The ID of the leader token
    * @param {string} follower - The the follower token
    */
-  addFollower(leader, follower) {
-    if (!this.isLeader(leader)) {
-      formations.set(leader, new Array());
+  async addFollower(leader, follower) {
+    if (leader.document.inCombat || follower.document.inCombat) {
+      ui.notifications.warn("One or more tokens are currently engaged in combat") // TODO: localize
+      return
     }
-    this.getFollowers(leader).push(follower);
-    gui.createFollowingIndicator(follower, leader);
-    console.log(`${MODULE_NAME} | ${game.i18n.format("token-formations.messages.addedFollower", { follower: follower.id, leader: leader.id })}`);
+
+    const add = async (leader, follower) => {
+      if (!this.isLeader(leader)) {
+        await leader.document.setFlag(MODULE_ID, "followers", new Array())
+      }
+      let followers = await leader.document.getFlag(MODULE_ID, "followers") || new Array()
+      console.log("the fuck is this?", followers)
+      await leader.document.setFlag(MODULE_ID, "followers", [...followers, follower.id])
+      gui.createFollowingIndicator(follower, leader);
+      console.log(`${MODULE_NAME} | ${game.i18n.format("token-formations.messages.addedFollower", { follower: follower.id, leader: leader.id })}`);
+    }
+
+    // change the leader in case the hovered token is already following someone else
+    for (const l of await this.getLeaders()) {
+      console.log("leader", l)
+      if ((await this.getFollowers(l)).findIndex((e) => e.id === leader.id) !== -1) {
+        leader = l
+      }
+    }
+
+    // Don't allow a token to follow itself
+    if (follower.id === leader.id) {
+      ui.notifications.warn(game.i18n.localize("token-formations.messages.noSelfFollow"));
+      return
+    }
+
+    // if you're already in another list, remove yourself from there
+    if ((await this.getFollowers(leader)).findIndex((e) => e.id === follower.id) !== -1) {
+      this.removeToken(follower)
+    }
+    
+    // Add the selected token as a follower to the hovered token (leader)
+    if (await this.isLeader(follower)) {
+      let followers = await this.getFollowers(follower)
+      await this.removeToken(follower)
+      console.log("Porcoddio", followers)
+      for (const f of followers) {
+        console.log("adding", f)
+        await add(leader, f)
+      }
+      add(leader, follower)
+    } else {
+      add(leader, follower);
+    }
+      
+    
+    ui.notifications.info(
+      game.i18n.format("token-formations.messages.addedFollower", { follower: follower.name, leader: leader.name }),
+      { permanent: false }
+    );
   },
   
   /**
@@ -459,22 +488,20 @@ window.TokenFormations = {
    * @param {string} leaderId - The ID of the leader token
    * @returns {Array<string>} Array of follower IDs
    */
-  getFollowers(leader) {
-    for (const [l, f] of formations) {
-      if (l.id === leader.id) {
-        return f
-      }
-    }
-    return new Array();
+  async getFollowers(leader) {
+    let followers = await leader.document.getFlag(MODULE_ID, "followers")
+    if (!followers) return new Array()
+      console.log("followers", typeof followers)
+    return followers.map((id) => canvas.tokens.objects.children.find(e => e.id === id))
   },
 
   /**
    * Get a list of all the followers for all leaders
    */
-  getAllFollowers() {
+  async getAllFollowers() {
     let allFollowers = []
-    for (const l of formations.values()) {
-      allFollowers = allFollowers.concat(l)
+    for (const l of await this.getLeaders()) {
+      allFollowers = allFollowers.concat(await this.getFollowers(l))
     }
     return allFollowers
   },
@@ -484,34 +511,37 @@ window.TokenFormations = {
    * @param {string} token - The token
    * @returns {boolean} True if the token is a leader
    */
-  isLeader(token) {
-    return Array.from(formations.keys()).findIndex((e) => e.id === token.id) !== -1;
+  async isLeader(token) {
+    return !!(await token.document.getFlag(MODULE_ID, "followers"))
   },
   
   /**
    * Remove a token from all formations (as leader or follower)
    * @param {string} token - The token to remove
    */
-  removeToken(token) {
+  async removeToken(token) {
     // Remove as leader
     if (this.isLeader(token)) {
-      let followers = this.getFollowers(token)
+      let followers = await this.getFollowers(token)
       for (const f of followers) {
         gui.removeFollowingIndicator(f)
       }
       gui.removeFollowingIndicator(token)
-      formations.delete(token);
+      await token.document.setFlag(MODULE_ID, "followers", null)
       console.log(`${MODULE_NAME} | ${game.i18n.format("token-formations.messages.removedLeader", { id: token.id })}`);
     }
     
     // Remove as follower
-    for (const [leader, followers] of formations) {
-      const index = followers.findIndex(e => e.id === token.id)
+    for (const leader of await this.getLeaders()) {
+      let followers = await leader.document.getFlag(MODULE_ID, "followers") || new Array()
+      const index = followers.findIndex(id => id === token.id)
       if (index !== -1) {
-        gui.removeFollowingIndicator(followers[index])
+        gui.removeFollowingIndicator(this.fromId(followers[index]))
         followers.splice(index, 1);
         if (followers.length === 0) {
-          formations.delete(leader);
+          await leader.document.setFlag(MODULE_ID, "followers", null)
+        } else {
+          await leader.document.setFlag(MODULE_ID, "followers", [...followers])
         }
         console.log(`${MODULE_NAME} | ${game.i18n.format("token-formations.messages.removedFollower", { id: token.id, leader: leader.id })}`);
         break;
@@ -523,10 +553,9 @@ window.TokenFormations = {
    * Clear all formations
    */
   clearAllFormations() {
-    for (const f of this.getAllFollowers()) {
-      gui.removeFollowingIndicator(f)
+    for (const l of this.getLeaders()) {
+      this.removeToken(l)
     }
-    formations.clear();
     console.log(`${MODULE_NAME} | ${game.i18n.localize("token-formations.messages.clearedAll")}`);
   }
 };
