@@ -119,7 +119,7 @@ Hooks.on('deleteCombat', async (combat) => {
   ui.notifications.info("Combat started | Disabling formations") //TODO: localize
   for(const token of canvas.tokens.objects.children) {
     if(await window.TokenFormations.getLeader(token)) {
-      gui.createFollowingIndicator(token, window.TokenFormations.fromId(await window.TokenFormations.getLeader(token)))
+      gui.createFollowingIndicator(token, window.TokenFormations.getLeader(token))
     }
   }
 });
@@ -128,7 +128,7 @@ Hooks.on('deleteCombatant', async (combatant) => {
   ui.notifications.info("Combat started | Disabling formations") //TODO: localize
   for(const token of canvas.tokens.objects.children) {
     if(await window.TokenFormations.getLeader(combatant)) {
-      gui.createFollowingIndicator(combatant, window.TokenFormations.fromId(await window.TokenFormations.getLeader(combatant)))
+      gui.createFollowingIndicator(combatant, window.TokenFormations.getLeader(combatant))
     }
   }
 });
@@ -146,19 +146,31 @@ Hooks.on('deleteToken', async (object) => {
   }
 });
 
-Hooks.on('updateToken', async (tokenDocument, updateData, options, userId) => {
-  for (const token of canvas.tokens.objects.children) {
-    if ((await window.TokenFormations.getLeader(token)) === tokenDocument.id &&
-      tokenDocument.getUserLevel(game.user) === 3 &&
-      updateData.flags &&
-      updateData.flags[MODULE_ID]) {
-      console.log("updateData name:", window.TokenFormations.fromId(updateData.flags[MODULE_ID].leader).document.name);
-      await tokenDocument.setFlag(MODULE_ID, "leader", updateData.flags[MODULE_ID].leader);
-      gui.removeFollowingIndicator(token)
-      gui.createFollowingIndicator(token, window.TokenFormations.fromId(updateData.flags[MODULE_ID].leader))
-      }
-    
+Hooks.on('updateToken', async (updatedTokenDocument, updateData, options, userId) => {
+  //Controlla se l'update riguarda le flag
+  if (!updateData.flags) return;
+  console.log("detected update on:", updatedTokenDocument.name)
+  //Controlla se il token modificato è un leader
+  const updatedToken = window.TokenFormations.fromId(updatedTokenDocument.id)
+  if (!(await window.TokenFormations.isLeader(updatedToken))) {
+    console.log("updated token is not a leader, skipping")
+    return;
   }
+
+  for (const token of canvas.tokens.objects.children) {
+    if (token.document.getUserLevel(game.user) &&
+      (await window.TokenFormations.getLeader(token))?.document.id === updatedTokenDocument.id)
+    {
+      console.log("token", token.document, "leader is:", (await window.TokenFormations.getLeader(token))?.document.name)
+      const newLeader = await window.TokenFormations.getLeader(updatedToken)
+      if (newLeader) {
+        console.log("newLeader", newLeader.document.name)
+        window.TokenFormations.addFollower(newLeader, token)
+      }
+    }    
+  }
+
+  
 });
 
 Hooks.on('moveToken', async (tokenDocument, movement, options, userId) => {
@@ -437,7 +449,7 @@ window.TokenFormations = {
   },
  
   async getLeader(follower) {
-    return await follower.document.getFlag(MODULE_ID, "leader")
+    return this.fromId(await follower.document.getFlag(MODULE_ID, "leader")) || null
   },
 
   /**
@@ -452,21 +464,31 @@ window.TokenFormations = {
       ui.notifications.warn(game.i18n.localize("token-formations.messages.cannotFollowSelf"));
       return;
     }
+
+    //Dont allow adding a follower that is already following the same leader
+    if ((await this.getLeader(leader))?.document.id === follower.id) {
+      ui.notifications.warn(game.i18n.localize("token-formations.messages.alreadyFollowing"));
+      return;
+    }
     
     // change the leader in case the hovered token is already following someone else
       if (await this.getLeader(leader)) {
-      const newLeader = await this.getLeader(leader);
+      const newLeader = (await this.getLeader(leader)).document.id;
       console.log("Leader is already a follower, changing leader");
         await follower.document.setFlag(MODULE_ID, "leader", newLeader);
+        ui.notifications.info(
+          game.i18n.format("token-formations.messages.addedFollower", { follower: follower.name, leader: this.fromId(newLeader).name }),
+        { permanent: false }
+      );
     } else {
       // Add the selected token as a follower to the hovered token (leader)
       follower.document.setFlag(MODULE_ID, "leader", leader.id);
+      ui.notifications.info(
+        game.i18n.format("token-formations.messages.addedFollower", { follower: follower.name, leader: leader.name }),
+        { permanent: false }
+      );
     }
     gui.createFollowingIndicator(follower, leader)
-    ui.notifications.info(
-      game.i18n.format("token-formations.messages.addedFollower", { follower: follower.name, leader: leader.name }),
-      { permanent: false }
-    );
   },
   
 
