@@ -16,7 +16,7 @@
   ],
   "esmodules": [
     "scripts/module.js",
-    "scripts/priorityQueue.js"
+    "scripts/gui.js"
   ],
   "styles": [
     "styles.css"

@@ -4,7 +4,7 @@
  */
 
 import PriorityQueue from "./priorityQueue.js";
-import * as gui from "./gui.js";
+import * as gui from './gui.js'
 import {findMinimumDistances, 
   dot, 
   inLeftRightBoundary, 
@@ -48,8 +48,24 @@ Hooks.once('init', () => {
 /**
  * Setup the module when Foundry is ready
  */
-Hooks.once('ready', () => {
+Hooks.once('ready', async () => {
   console.log(`${MODULE_NAME} | ${game.i18n.localize("token-formations.messages.ready")}`);
+
+  if (game.user.isGM) {
+    let tokens = canvas.tokens.objects.children
+  
+    for (const t1 of tokens) {
+      const t2 = await window.TokenFormations.getLeader(t1)
+
+      if (t2 === null) continue
+  
+      const t3 = await window.TokenFormations.getLeader(t2)
+  
+      if (t3 !== null) {
+        window.TokenFormations.addFollower(t3, t1)
+      }
+    }
+  }
 
   // Add keyboard event listener for F key
   document.addEventListener('keydown', async (event) => {
@@ -99,40 +115,6 @@ Hooks.once('ready', () => {
   });
 });
 
-Hooks.on('combatStart', async (combat) => {
-  ui.notifications.info("Combat started | Disabling formations") //TODO: localize
-  for(const token of canvas.tokens.objects.children) {
-    if(await window.TokenFormations.getLeader(token)) {
-      gui.removeFollowingIndicator(token)
-    }
-  }
-});
-
-Hooks.on('createCombatant', async (combatant) => {
-    if(await window.TokenFormations.getLeader(combatant)) {
-      gui.removeFollowingIndicator(combatant)
-    }
-});
-
-
-Hooks.on('deleteCombat', async (combat) => {
-  ui.notifications.info("Combat started | Disabling formations") //TODO: localize
-  for(const token of canvas.tokens.objects.children) {
-    if(await window.TokenFormations.getLeader(token)) {
-      gui.createFollowingIndicator(token, window.TokenFormations.getLeader(token))
-    }
-  }
-});
-
-Hooks.on('deleteCombatant', async (combatant) => {
-  ui.notifications.info("Combat started | Disabling formations") //TODO: localize
-  for(const token of canvas.tokens.objects.children) {
-    if(await window.TokenFormations.getLeader(combatant)) {
-      gui.createFollowingIndicator(combatant, window.TokenFormations.getLeader(combatant))
-    }
-  }
-});
-
 Hooks.on('deleteToken', async (object) => {
   if (!game.user.isGM) {
     console.log("User not GM, ignoring");
@@ -156,7 +138,7 @@ Hooks.on('updateToken', async (updatedTokenDocument, updateData, options, userId
     console.log("updated token is not a leader, skipping")
     return;
   }
-
+  
   for (const token of canvas.tokens.objects.children) {
     if (token.document.getUserLevel(game.user) &&
       (await window.TokenFormations.getLeader(token))?.document.id === updatedTokenDocument.id)
@@ -488,7 +470,6 @@ window.TokenFormations = {
         { permanent: false }
       );
     }
-    gui.createFollowingIndicator(follower, leader)
   },
   
 
@@ -542,7 +523,6 @@ window.TokenFormations = {
   async removeToken(token) {
     // Remove as follower
     token.document.unsetFlag(MODULE_ID, "leader");
-    gui.removeFollowingIndicator(token)
   },
   
   /**
@@ -551,7 +531,6 @@ window.TokenFormations = {
   clearAllFormations() {
     for (let token of canvas.tokens.objects.children) {
       token.document.unsetFlag(MODULE_ID, "leader");
-      gui.removeFollowingIndicator(token)
     }
   }
 };

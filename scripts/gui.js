@@ -212,5 +212,74 @@ Hooks.on("getSceneControlButtons", controls => {
 
   }
 });
+
+Hooks.once('canvasReady', async () => {
+  for (const token of canvas.tokens.objects.children) {
+    const leader = await window.TokenFormations.getLeader(token)
+    
+    removeFollowingIndicator(token)
+
+    if (!leader || token.inCombat) continue
+
+    createFollowingIndicator(token, leader)
+  }
+})
+
+Hooks.on('updateToken', async (updatedTokenDocument, updateData, options, userId) => {
+  if (!updateData.flags) return;
+
+  const updatedToken = window.TokenFormations.fromId(updatedTokenDocument.id)
+
+  const leader = await window.TokenFormations.getLeader(updatedToken)
+
+  removeFollowingIndicator(updatedToken)
+
+  if (leader === null || updatedToken.inCombat) return
+
+  createFollowingIndicator(updatedToken, leader)
+})
   
+
+Hooks.on('combatStart', async (combat) => {
+  ui.notifications.info("Combat started | Disabling formations") //TODO: localize
+  for (const token of canvas.tokens.objects.children) {
+    if (token.inCombat) {
+      removeFollowingIndicator(token)
+    }
+  }
+});
+
+Hooks.on('deleteCombat', async (combat) => {
+  ui.notifications.info("Combat ended | Re-enabling formations") //TODO: localize
+  for (const token of canvas.tokens.objects.children) {
+    const leader = await window.TokenFormations.getLeader(token)
+
+    removeFollowingIndicator(token)
+  
+    if (leader === null) continue
+  
+    createFollowingIndicator(token, leader)
+  }
+});
+
+Hooks.on('createCombatant', async (combatant) => {
+  const token = window.TokenFormations.fromId(combatant.tokenId)
+  if (token.document.canUserModify(game.user, "update"))
+    ui.notifications.info("Entered Combat | Disabling formations") //TODO: localize
+  removeFollowingIndicator(token)
+})
+
+Hooks.on('deleteCombatant', async (combatant) => {
+  const token = window.TokenFormations.fromId(combatant.tokenId)
+  if (token.document.canUserModify(game.user, "update"))
+    ui.notifications.info("Exited Combat | Re-enabling formations") //TODO: localize
+
+  const leader = await window.TokenFormations.getLeader(token)
+
+  removeFollowingIndicator(token)
+
+  if (leader === null) return
+
+  createFollowingIndicator(token, leader)
+});
 
