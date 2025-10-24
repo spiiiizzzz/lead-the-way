@@ -134,6 +134,12 @@ Hooks.on('updateToken', async (updatedTokenDocument, updateData, options, userId
   console.log("detected update on:", updatedTokenDocument.name)
   //Controlla se il token modificato è un leader
   const updatedToken = window.TokenFormations.fromId(updatedTokenDocument.id)
+
+  const leader = await window.TokenFormations.getLeader(updatedToken)
+  if (leader && leader.document.canUserModify(game.user, "update")) {
+    ui.notifications.info(`${updatedToken.name} is following you (${leader.name})`) // TODO: localize
+  }
+
   if (!(await window.TokenFormations.isLeader(updatedToken))) {
     console.log("updated token is not a leader, skipping")
     return;
@@ -522,6 +528,10 @@ window.TokenFormations = {
    */
   async removeToken(token) {
     // Remove as follower
+    const leader = token.document.getFlag(MODULE_ID, "leader");
+    if (leader) {
+      ui.notifications.info(`${token.name} is no longer following ${(await this.fromId(leader)).name}`) // TODO: localize
+    }
     token.document.unsetFlag(MODULE_ID, "leader");
   },
   
