@@ -149,16 +149,7 @@ Hooks.once('init', function() {
 
 Hooks.on("getSceneControlButtons", controls => {
 
-  controls.tokens.tools.tutorial = {
-    name: "tokenFormationsInfo",
-    title: game.i18n.localize("token-formations.buttons.info"),
-    order: Object.keys(controls.tokens.tools).length,
-    icon: "fa-solid fa-info-circle",
-    button: false,
-    visible: true
-  }
-  
-  console.log("Controls:", controls)
+  console.log(game.i18n.localize("token-formations.messages.controls"), controls)
   controls.tokens.tools.clearFormations = {
     name: "clearFormations",
     title: game.i18n.localize("token-formations.buttons.clearFormations"),
@@ -176,41 +167,11 @@ Hooks.on("getSceneControlButtons", controls => {
           ui.notifications.info(game.i18n.localize("token-formations.messages.clearedAll"));
           window.TokenFormations.clearAllFormations()
       } else {
-        console.log("Do not proceed.");
+        console.log(game.i18n.localize("token-formations.messages.noLongerFollowing"));
       }
     }
   }
   
-  controls.tokens.tools.disbandFormation = {
-    name: "disbandFormation",
-    title: game.i18n.localize("token-formations.buttons.disbandFormation"),
-    icon: "fa-solid fa-users-slash",
-    order: Object.keys(controls.tokens.tools).length + 1,
-    button: true,
-    visible: !game.user.isGM,
-    onChange: async () => {
-      if (!canvas.tokens.controlled.length) {
-        ui.notifications.warn(game.i18n.localize("token-formations.messages.noTokenSelected"));
-        return;
-      }
-      if (canvas.tokens.controlled.length !== 1 || !window.TokenFormations.isLeader(canvas.tokens.controlled[0])) {
-        ui.notifications.warn("seleziona il leader"); // TODO: localize
-      } else {
-        const proceed = await foundry.applications.api.DialogV2.confirm({
-          content: game.i18n.localize("token-formations.messages.confirmDisbandFormation"),
-          rejectClose: false,
-          modal: true
-        });
-        if (proceed) {
-          ui.notifications.info(game.i18n.localize("token-formations.messages.disbandedFormation"));
-          window.TokenFormations.removeToken(canvas.tokens.controlled[0])
-        } else {
-          console.log("Do not proceed.");
-        }
-      }
-    }
-
-  }
 });
 
 Hooks.once('canvasReady', async () => {
@@ -241,7 +202,7 @@ Hooks.on('updateToken', async (updatedTokenDocument, updateData, options, userId
   
 
 Hooks.on('combatStart', async (combat) => {
-  ui.notifications.info("Combat started | Disabling formations") //TODO: localize
+  ui.notifications.info(game.i18n.localize("token-formations.messages.combatStarted"))
   for (const token of canvas.tokens.objects.children) {
     if (token.inCombat) {
       removeFollowingIndicator(token)
@@ -250,7 +211,7 @@ Hooks.on('combatStart', async (combat) => {
 });
 
 Hooks.on('deleteCombat', async (combat) => {
-  ui.notifications.info("Combat ended | Re-enabling formations") //TODO: localize
+  ui.notifications.info(game.i18n.localize("token-formations.messages.combatEnded"))
   for (const token of canvas.tokens.objects.children) {
     const leader = await window.TokenFormations.getLeader(token)
 
@@ -265,14 +226,14 @@ Hooks.on('deleteCombat', async (combat) => {
 Hooks.on('createCombatant', async (combatant) => {
   const token = window.TokenFormations.fromId(combatant.tokenId)
   if (token.document.canUserModify(game.user, "update"))
-    ui.notifications.info("Entered Combat | Disabling formations") //TODO: localize
+    ui.notifications.info(game.i18n.localize("token-formations.messages.enteredCombat"))
   removeFollowingIndicator(token)
 })
 
 Hooks.on('deleteCombatant', async (combatant) => {
   const token = window.TokenFormations.fromId(combatant.tokenId)
   if (token.document.canUserModify(game.user, "update"))
-    ui.notifications.info("Exited Combat | Re-enabling formations") //TODO: localize
+    ui.notifications.info(game.i18n.localize("token-formations.messages.exitedCombat"))
 
   const leader = await window.TokenFormations.getLeader(token)
 

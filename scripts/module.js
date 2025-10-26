@@ -117,7 +117,7 @@ Hooks.once('ready', async () => {
 
 Hooks.on('deleteToken', async (object) => {
   if (!game.user.isGM) {
-    console.log("User not GM, ignoring");
+    console.log(game.i18n.localize("token-formations.messages.notGM"));
     return;
   }
   if (window.TokenFormations.isLeader(object)) {
@@ -137,11 +137,11 @@ Hooks.on('updateToken', async (updatedTokenDocument, updateData, options, userId
 
   const leader = await window.TokenFormations.getLeader(updatedToken)
   if (leader && leader.document.canUserModify(game.user, "update")) {
-    ui.notifications.info(`${updatedToken.name} is following you (${leader.name})`) // TODO: localize
+    ui.notifications.info(game.i18n.format("token-formations.messages.followingYou", { token: updatedToken.name, leader: leader.name }))
   }
 
   if (!(await window.TokenFormations.isLeader(updatedToken))) {
-    console.log("updated token is not a leader, skipping")
+    console.log(game.i18n.localize("token-formations.messages.updatedTokenNotLeader"))
     return;
   }
   
@@ -163,7 +163,7 @@ Hooks.on('updateToken', async (updatedTokenDocument, updateData, options, userId
 
 Hooks.on('moveToken', async (tokenDocument, movement, options, userId) => {
   if (!game.user.isGM) {
-    console.log("User not GM, ignoring");
+    console.log(game.i18n.localize("token-formations.messages.notGM"));
     return;
   }
   let token = canvas.tokens.objects.children.find((e) => e.id === tokenDocument.id) 
@@ -171,7 +171,7 @@ Hooks.on('moveToken', async (tokenDocument, movement, options, userId) => {
 
   if (movement.method !== "api" && !!(await window.TokenFormations.getLeader(token))) {
     await window.TokenFormations.removeToken(token)
-    ui.notifications.info("Token rimosso per movimento manuale") //TODO: localize
+    ui.notifications.info(game.i18n.localize("token-formations.messages.removedOnManualMove"))
     return
   }
 
@@ -303,8 +303,8 @@ Hooks.on('moveToken', async (tokenDocument, movement, options, userId) => {
 
     // Run this in case there are no valid cells in the boundaries
     if (fallbackPositions.isEmpty && neededPositions > 0) {
+      ui.notifications.warn(game.i18n.localize("token-formations.messages.noValidLocation"))
       // TODO: Localize
-      ui.notifications.warn("No valid location found")
       let pos = fallbackPositions.min()
       fallbackPositions.remove()
 
@@ -347,7 +347,7 @@ Hooks.on('moveToken', async (tokenDocument, movement, options, userId) => {
       const dist = Math.sqrt(Math.pow(currentPosition.x - targetPosition.x, 2) + Math.pow(currentPosition.y - targetPosition.y, 2))
       if (maxDistance !== 0 && dist > maxDistance) {
         followers.splice(i, 1)
-        ui.notifications.warn("Il target da raggiungere è troppo lontano")
+        ui.notifications.warn(game.i18n.localize("token-formations.messages.targetTooFar"))
         continue
       }
 
@@ -446,7 +446,6 @@ window.TokenFormations = {
    * @param {string} follower - The the follower token
    */
   async addFollower(leader, follower) {
-    
     // Don't allow a token to follow itself
     if(leader.document.id === follower.document.id) {
       ui.notifications.warn(game.i18n.localize("token-formations.messages.cannotFollowSelf"));
@@ -530,7 +529,7 @@ window.TokenFormations = {
     // Remove as follower
     const leader = token.document.getFlag(MODULE_ID, "leader");
     if (leader) {
-      ui.notifications.info(`${token.name} is no longer following ${(await this.fromId(leader)).name}`) // TODO: localize
+      ui.notifications.info(game.i18n.format("token-formations.messages.noLongerFollowing", { follower: token.name, leader: (await this.fromId(leader)).name }))
     }
     token.document.unsetFlag(MODULE_ID, "leader");
   },
