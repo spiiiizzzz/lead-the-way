@@ -15,7 +15,8 @@ import {findMinimumDistances,
   getAdjacentPositions, 
   getRelevantWalls, 
   drawRay, 
-  checkWallCollision
+  checkWallCollision,
+  checkTokenCollisions
 } from "./utils.js"
 
 // Module constants
@@ -86,7 +87,7 @@ Hooks.once('ready', async () => {
           ui.notifications.warn(game.i18n.localize("token-formations.messages.selectOneToken"));
         } else if (!hoveredToken) {
           ui.notifications.warn(game.i18n.localize("token-formations.messages.hoverLeader"));
-        } else if (selectedTokens[0].document.disposition === hoveredToken.document.disposition) {
+        } else if (selectedTokens[0].document.disposition !== hoveredToken.document.disposition) {
           ui.notifications.warn("Cannot follow a token with a different disposition") // TODO: localize
         }
       }
@@ -202,7 +203,7 @@ Hooks.on('moveToken', async (tokenDocument, movement, options, userId) => {
       x: targetPosition.x - Math.round(direction.x) * canvas.grid.size,
       y: targetPosition.y - Math.round(direction.y) * canvas.grid.size
     };
-        
+
     firstPosition = canvas.grid.getTopLeftPoint(firstPosition)
     const sum = (followers.reduce((acc, curr) => {
       return {x: curr.x + acc.x, y: curr.y + acc.y} 
@@ -248,7 +249,7 @@ Hooks.on('moveToken', async (tokenDocument, movement, options, userId) => {
     queue.add(firstPosition, 0)
     let validPositions = []
     let fallbackPositions = new PriorityQueue()
-    let visited = [firstPosition]
+    let visited = [firstPosition, targetPosition]
     let neededPositions = followerLength
 
     let boundaries = {
@@ -279,7 +280,6 @@ Hooks.on('moveToken', async (tokenDocument, movement, options, userId) => {
     }
 
     //drawSegmentBetweenCells(boundaries.right.x, boundaries.right.y, boundaries.left.x, boundaries.left.y)
-
     while (!queue.isEmpty() && neededPositions > 0) {
       let pos = queue.min()
       queue.remove()
@@ -288,11 +288,13 @@ Hooks.on('moveToken', async (tokenDocument, movement, options, userId) => {
 
       let collisions = checkWallCollision(pos, boundaries)
 
+      let tokenCollisions = checkTokenCollisions(pos, boundaries, token.document.disposition)
+
       let positions = getAdjacentPositions(pos, boundaries)
 
       for (let i = 0; i < 4; i++) {
         const newPos = positions[i]
-        if(!collisions[i] && visited.findIndex((e) => newPos.x === e.x && newPos.y === e.y) === -1) {
+        if(!collisions[i] && !tokenCollisions[i] && visited.findIndex((e) => newPos.x === e.x && newPos.y === e.y) === -1) {
           if (inLeftRightBoundary(newPos, boundaries) && inGrowBoundary(newPos, boundaries)) {
             queue.add(newPos, Math.sqrt(Math.pow(newPos.x - firstPosition.x, 2) + Math.pow(newPos.y - firstPosition.y, 2)))
           }
@@ -305,9 +307,9 @@ Hooks.on('moveToken', async (tokenDocument, movement, options, userId) => {
     }
 
     // Run this in case there are no valid cells in the boundaries
-    if (fallbackPositions.isEmpty && neededPositions > 0) {
-      ui.notifications.warn(game.i18n.localize("token-formations.messages.noValidLocation"))
-      // TODO: Localize
+    while (!fallbackPositions.isEmpty() && neededPositions > 0) {
+      console.log("uhhhhhhh")
+
       let pos = fallbackPositions.min()
       fallbackPositions.remove()
 
@@ -315,11 +317,13 @@ Hooks.on('moveToken', async (tokenDocument, movement, options, userId) => {
 
       let collisions = checkWallCollision(pos, boundaries)
 
+      let tokenCollisions = checkTokenCollisions(pos, boundaries, token.document.disposition)
+
       let positions = getAdjacentPositions(pos, boundaries)
 
       for (let i = 0; i < 4; i++) {
         let newPos = positions[i]
-        if(!collisions[i] 
+        if(!collisions[i] && !tokenCollisions[i]
             && visited.findIndex((e) => newPos.x === e.x && newPos.y === e.y) === -1
             && inGrowBoundary(newPos, boundaries)
         ) {
@@ -331,7 +335,7 @@ Hooks.on('moveToken', async (tokenDocument, movement, options, userId) => {
     }
 
     for (const v of validPositions) {
-      //drawXonCell(v.x, v.y, 0xff0000, 0.8, 10000)
+      drawXonCell(v.x, v.y, 0xff0000, 0.8, 5000)
     }
 
     const maxDistance = game.settings.get('token-formations', 'max-distance') * canvas.grid.size;
@@ -341,6 +345,11 @@ Hooks.on('moveToken', async (tokenDocument, movement, options, userId) => {
 
       if (f.inCombat) {
         continue
+      }
+
+      if (validPositions.length === 0) {
+        ui.notifications.warn(game.i18n.localize("token-formations.messages.noValidLocation"))
+        return
       }
 
       const targetPosition = canvas.grid.getTopLeftPoint(validPositions.shift())
