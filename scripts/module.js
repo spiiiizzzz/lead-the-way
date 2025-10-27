@@ -78,7 +78,7 @@ Hooks.once('ready', async () => {
         const selectedTokens = canvas.tokens.controlled;
         const hoveredToken = window.TokenFormations.hoveredToken;
 
-        if (selectedTokens.length === 1 && hoveredToken) {
+        if (selectedTokens.length === 1 && hoveredToken && selectedTokens[0].document.disposition === hoveredToken.document.disposition) {
           await window.TokenFormations.addFollower(hoveredToken, selectedTokens[0])  
         } else if (selectedTokens.length === 0) {
           ui.notifications.warn(game.i18n.localize("token-formations.messages.selectToken"));
@@ -86,6 +86,8 @@ Hooks.once('ready', async () => {
           ui.notifications.warn(game.i18n.localize("token-formations.messages.selectOneToken"));
         } else if (!hoveredToken) {
           ui.notifications.warn(game.i18n.localize("token-formations.messages.hoverLeader"));
+        } else if (selectedTokens[0].document.disposition === hoveredToken.document.disposition) {
+          ui.notifications.warn("Cannot follow a token with a different disposition") // TODO: localize
         }
       }
     }
@@ -130,7 +132,8 @@ Hooks.on('deleteToken', async (object) => {
 
 Hooks.on('updateToken', async (updatedTokenDocument, updateData, options, userId) => {
   //Controlla se l'update riguarda le flag
-  if (!updateData.flags) return;
+  console.log(updateData)
+  if (!(updateData.flags?.["token-formations"])) return; // I'm honestly surprised this syntax works
   console.log("detected update on:", updatedTokenDocument.name)
   //Controlla se il token modificato è un leader
   const updatedToken = window.TokenFormations.fromId(updatedTokenDocument.id)

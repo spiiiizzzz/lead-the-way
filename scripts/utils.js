@@ -208,8 +208,31 @@ export function getRelevantWalls(ray) {
         );
     });
 }
+
+// TODO: It requires a bit more changes than necessary since the whole checkWallCollisions requires walls specifically
+//       This function is a stub basically. checkWallCollision involves some complicated math that i'm afraid to touch
+export function getRelevantTokens(ray, disposition) {
+  // Calcola bounding box del raggio
+  const minX = Math.min(ray.A.x, ray.B.x) - 1;
+  const maxX = Math.max(ray.A.x, ray.B.x) + 1;
+  const minY = Math.min(ray.A.y, ray.B.y) - 1;
+  const maxY = Math.max(ray.A.y, ray.B.y) + 1;
+
+  // Filtra solo i muri che sono nel bounding box
+  return canvas.tokens.children.objects.filter(token => {
+    const c = token.getGridSpacePolygon(); // might want to change this on gridless
+    // For future reference: getGridSpacePolygon returns a list of points, which is different than the wall's 4 points you get from document.c
+    return (
+    Math.max(c.map((p) => p.x)) >= minX &&
+    Math.min(c.map((p) => p.x)) <= maxX &&
+    Math.max(c.map((p) => p.y)) >= minY &&
+    Math.min(c.map((p) => p.y)) <= maxY &&
+    token.document.disposition !== disposition
+    );
+  });
+}
   
-export function checkWallCollision(position, boundaries, checkDiagonals = false) {
+export function checkWallCollision(position, boundaries, disposition, checkDiagonals = false) {
     let collisions = []
     const tmp = rotateClockwise(boundaries.growDirection)
     const d = Math.atan2(tmp.y, tmp.x)
