@@ -133,7 +133,6 @@ Hooks.on('deleteToken', async (object) => {
 
 Hooks.on('updateToken', async (updatedTokenDocument, updateData, options, userId) => {
   //Controlla se l'update riguarda le flag
-  console.log(updateData)
   if (!(updateData.flags?.["token-formations"])) return; // I'm honestly surprised this syntax works
   console.log("detected update on:", updatedTokenDocument.name)
   //Controlla se il token modificato è un leader
@@ -308,8 +307,6 @@ Hooks.on('moveToken', async (tokenDocument, movement, options, userId) => {
 
     // Run this in case there are no valid cells in the boundaries
     while (!fallbackPositions.isEmpty() && neededPositions > 0) {
-      console.log("uhhhhhhh")
-
       let pos = fallbackPositions.min()
       fallbackPositions.remove()
 
@@ -334,9 +331,9 @@ Hooks.on('moveToken', async (tokenDocument, movement, options, userId) => {
       neededPositions--
     }
 
-    for (const v of validPositions) {
+    /*for (const v of validPositions) {
       drawXonCell(v.x, v.y, 0xff0000, 0.8, 5000)
-    }
+    }*/
 
     const maxDistance = game.settings.get('token-formations', 'max-distance') * canvas.grid.size;
 
@@ -401,9 +398,10 @@ Hooks.on('moveToken', async (tokenDocument, movement, options, userId) => {
         }
 
         const collisions = checkWallCollision(pos.position, boundaries, true)
+        const tokenCollisions = checkTokenCollisions(pos.position, boundaries, f.document.disposition, true)
         const positions = getAdjacentPositions(pos.position, boundaries, true)
         for (let i = 0; i < 8; i++) {
-          if (!collisions[i] 
+          if (!collisions[i] && !tokenCollisions[i]
             && visited.findIndex((e) => positions[i].x === e.x && positions[i].y === e.y) === -1
             && positions[i].x >= canvas.dimensions.sceneRect.x && positions[i].x < canvas.dimensions.sceneRect.x+canvas.dimensions.sceneWidth
             && positions[i].y >= canvas.dimensions.sceneRect.y && positions[i].y < canvas.dimensions.sceneRect.y+canvas.dimensions.sceneHeight

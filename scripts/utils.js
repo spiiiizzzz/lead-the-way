@@ -295,31 +295,27 @@ export function checkWallCollision(position, boundaries, checkDiagonals = false)
 }
 
 export function getRelevantTokens(ray, disposition) {
-  // Calcola bounding box del raggio
-  const minX = Math.min(ray.A.x, ray.B.x) - 1;
-  const maxX = Math.max(ray.A.x, ray.B.x) + 1;
-  const minY = Math.min(ray.A.y, ray.B.y) - 1;
-  const maxY = Math.max(ray.A.y, ray.B.y) + 1;
-
   // Filtra solo i muri che sono nel bounding box
-  return canvas.tokens.objects.children.filter(token => {
+  let result = []
+
+  canvas.tokens.objects.children.forEach(token => {
     const ul = token.getSnappedPosition();
-    console.log("upper left of token", ul)
     const lr = {x: ul.x + canvas.grid.size, y: ul.y + canvas.grid.size}
 
-    let c = [ul, lr]
+    //drawRay(foundry.canvas.geometry.Ray.towardsPoint(ul, lr, canvas.grid.size * Math.SQRT2), 0x0000ff)
 
     //drawXonCell(ul.x, ul.y, 0x00ff00, 0.8, 1000)
     //drawXonCell(lr.x, lr.y, 0x00ff00, 0.8, 1000)
 
-    return (
-    Math.max(c.map((p) => p.x)) >= minX &&
-    Math.min(c.map((p) => p.x)) <= maxX &&
-    Math.max(c.map((p) => p.y)) >= minY &&
-    Math.min(c.map((p) => p.y)) <= maxY &&
-    token.document.disposition !== disposition
-    );
+    if (
+      foundry.utils.lineSegmentIntersects(ray.A, ray.B, ul, lr) &&
+      token.document.disposition !== disposition
+    ) {
+      result.push([ul, lr])
+    }
   });
+
+  return result
 }
 
 export function checkTokenCollisions(position, boundaries, disposition, checkDiagonals = false) {
@@ -331,10 +327,10 @@ export function checkTokenCollisions(position, boundaries, disposition, checkDia
       position.x + canvas.grid.size/2, position.y + canvas.grid.size/2, d + i * Math.PI, canvas.grid.size
       );
       //drawRay(ray)
-      const relevantTokenBounds = getRelevantTokens(ray);
+      const relevantTokenBounds = getRelevantTokens(ray, disposition);
       let collides = false
       for (const token of relevantTokenBounds) {
-        drawRay(foundry.canvas.geometry.Ray.towardsPoint(token[0], token[1], canvas.grid.size * Math.SQRT2), 0xff00ff, 1000)
+        //drawRay(foundry.canvas.geometry.Ray.towardsPoint(token[0], token[1], canvas.grid.size * Math.SQRT2), 0xff00ff, 1000)
         if (foundry.utils.lineSegmentIntersects(
           ray.A, ray.B,
           token[0],
@@ -353,10 +349,10 @@ export function checkTokenCollisions(position, boundaries, disposition, checkDia
       position.x + canvas.grid.size/2, position.y + canvas.grid.size/2, d2 + i * Math.PI, canvas.grid.size
       );
       //drawRay(ray)
-      const relevantTokenBounds = getRelevantTokens(ray);
+      const relevantTokenBounds = getRelevantTokens(ray, disposition);
       let collides = false
       for (const token of relevantTokenBounds) {
-        drawRay(foundry.canvas.geometry.Ray.towardsPoint(token[0], token[1], canvas.grid.size * Math.SQRT2), 0xff00ff, 1000)
+        //drawRay(foundry.canvas.geometry.Ray.towardsPoint(token[0], token[1], canvas.grid.size * Math.SQRT2), 0xff00ff, 1000)
       if (foundry.utils.lineSegmentIntersects(
           ray.A, ray.B,
           token[0],
@@ -381,21 +377,21 @@ export function checkTokenCollisions(position, boundaries, disposition, checkDia
           position.x + canvas.grid.size/2, position.y + canvas.grid.size/2, ((1+i) / 2) * Math.PI, canvas.grid.size
       );
       //drawRay(directRay, 0x00ff00)
-      const relevantWalls = getRelevantWalls(directRay).concat(getRelevantWalls(ray1)).concat(getRelevantWalls(ray2));
+      const relevantTokenBounds = getRelevantTokens(directRay, disposition).concat(getRelevantTokens(ray1, disposition)).concat(getRelevantTokens(ray2, disposition));
       let collides = false
-      for (const wall of relevantWalls) {
+      for (const token of relevantTokenBounds) {
           if (foundry.utils.lineSegmentIntersects(
               directRay.A, directRay.B,
-              { x: wall.document.c[0], y: wall.document.c[1] },
-              { x: wall.document.c[2], y: wall.document.c[3] }
+              token[0],
+              token[1]
           ) || foundry.utils.lineSegmentIntersects(
               ray1.A, ray1.B,
-              { x: wall.document.c[0], y: wall.document.c[1] },
-              { x: wall.document.c[2], y: wall.document.c[3] }
+              token[0],
+              token[1]
           ) || foundry.utils.lineSegmentIntersects(
               ray2.A, ray2.B,
-              { x: wall.document.c[0], y: wall.document.c[1] },
-              { x: wall.document.c[2], y: wall.document.c[3] }
+              token[0],
+              token[1]
           )
           ) { 
           collides = true;
