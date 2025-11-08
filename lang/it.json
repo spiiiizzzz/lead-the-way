@@ -6,12 +6,12 @@
     },
     "settings": {
       "queueWidth": {
-        "name": "Larghezza formazione",
+        "name": "Larghezza Formazione",
         "hint": "Imposta la larghezza (in celle della griglia) della formazione dei seguaci."
       },
       "maxDistance": {
-        "name": "Distanza massima",
-        "hint": "Imposta la distanza massima a cui un token può seguire il leader. 0 = Infinita. Imposta un limite se il sistema è lento."
+        "name": "Distanza Massima",
+        "hint": "Imposta la distanza massima che un token può seguire il leader. 0 = Infinita. Imposta un limite se il sistema è lento."
       },
       "showFollowingIndicator": {
         "name": "Mostra indicatore di seguito",
@@ -43,31 +43,34 @@
       }
     },
     "messages": {
-      "init": "Inizializzazione del modulo",
-      "ready": "Modulo pronto",
-      "addedFollower": "Aggiunto {follower} come seguace di {leader}",
-      "noSelfFollow": "Un token non può seguire sé stesso!",
-      "selectToken": "Seleziona prima un token!",
-      "selectOneToken": "Seleziona solo un token!",
-      "hoverLeader": "Passa il mouse sopra un token leader!",
-      "followers": "Seguaci ({count}):",
-      "noFollowers": "Nessun seguace per questo leader.",
-      "removedLeader": "Leader {id} rimosso e formazione sciolta",
-      "removedFollower": "Rimosso {id} come seguace dal leader {leader}",
-      "clearedAll": "Tutte le formazioni sono state cancellate",
-      "targetTooFar": "L'obiettivo da raggiungere è troppo lontano",
-      "confirmClearAll": "Sei sicuro di voler eliminare tutte le formazioni?",
-      "noTokenSelected": "Nessun token selezionato!",
-      "confirmDisbandFormation": "Sei sicuro di voler sciogliere la formazione selezionata?",
-      "disbandedFormation": "Formazione sciolta"
+      "init": "Modulo Formazioni Token inizializzato.",
+      "ready": "Modulo Formazioni Token pronto.",
+      "selectToken": "Seleziona prima un token.",
+      "selectOneToken": "Seleziona solo un token.",
+      "hoverLeader": "Passa sopra un token leader.",
+      "cannotFollowSelf": "Un token non può seguire se stesso.",
+      "alreadyFollowing": "Questo token sta già seguendo il leader selezionato.",
+      "addedFollower": "{follower} ora sta seguendo {leader}.",
+      "noLongerFollowing": "{follower} non sta più seguendo {leader}.",
+      "confirmClearAll": "Sei sicuro di voler cancellare tutte le formazioni?",
+      "clearedAll": "Tutte le formazioni sono state cancellate.",
+      "noValidLocation": "Nessuna posizione valida trovata.",
+      "targetTooFar": "Il bersaglio da raggiungere è troppo lontano.",
+      "removedOnManualMove": "Token rimosso dalla formazione a causa di movimento manuale.",
+      "combatStarted": "Combattimento iniziato | Disabilitazione formazioni.",
+      "combatEnded": "Combattimento terminato | Riabilitazione formazioni.",
+      "enteredCombat": "Entrato in combattimento | Disabilitazione formazioni.",
+      "exitedCombat": "Uscito dal combattimento | Riabilitazione formazioni.",
+      "followingYou": "{token} ti sta seguendo ({leader}).",
+      "notGM": "Utente non GM, ignorato.",
+      "updatedTokenNotLeader": "Il token aggiornato non è un leader, salto.",
+      "controls": "Controlli:"
     },
     "buttons": {
-      "info": "Info Formazioni Token",
-      "clearFormations": "Sciogli tutte le formazioni",
-      "disbandFormation": "Sciogli formazione"
+      "clearFormations": "Cancella Formazioni"
     },
     "tooltips": {
-      "info": "Questo modulo permette di creare e gestire formazioni di token. Seleziona un token, passa il mouse su un altro e premi F per farlo seguire. Usa i pulsanti qui sotto per sciogliere le formazioni."
+      "info": "Questo modulo ti permette di creare e gestire formazioni di token. Seleziona un token, passa sopra un altro e premi F per farlo seguire. Usa i pulsanti qui sotto per sciogliere le formazioni."
     }
   }
 }

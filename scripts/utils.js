@@ -293,3 +293,114 @@ export function checkWallCollision(position, boundaries, checkDiagonals = false)
 
     return collisions
 }
+
+export function getRelevantTokens(ray, disposition) {
+  // Filtra solo i muri che sono nel bounding box
+  let result = []
+
+  canvas.tokens.objects.children.forEach(token => {
+    const ul = token.getSnappedPosition();
+    const lr = {x: ul.x + canvas.grid.size, y: ul.y + canvas.grid.size}
+
+    //drawRay(foundry.canvas.geometry.Ray.towardsPoint(ul, lr, canvas.grid.size * Math.SQRT2), 0x0000ff)
+
+    //drawXonCell(ul.x, ul.y, 0x00ff00, 0.8, 1000)
+    //drawXonCell(lr.x, lr.y, 0x00ff00, 0.8, 1000)
+
+    if (
+      foundry.utils.lineSegmentIntersects(ray.A, ray.B, ul, lr) &&
+      token.document.disposition !== disposition
+    ) {
+      result.push([ul, lr])
+    }
+  });
+
+  return result
+}
+
+export function checkTokenCollisions(position, boundaries, disposition, checkDiagonals = false) {
+  let collisions = []
+  const tmp = rotateClockwise(boundaries.growDirection)
+  const d = Math.atan2(tmp.y, tmp.x)
+  for (let i = 0; i < 2; i++) {
+      const ray = foundry.canvas.geometry.Ray.fromAngle(
+      position.x + canvas.grid.size/2, position.y + canvas.grid.size/2, d + i * Math.PI, canvas.grid.size
+      );
+      //drawRay(ray)
+      const relevantTokenBounds = getRelevantTokens(ray, disposition);
+      let collides = false
+      for (const token of relevantTokenBounds) {
+        //drawRay(foundry.canvas.geometry.Ray.towardsPoint(token[0], token[1], canvas.grid.size * Math.SQRT2), 0xff00ff, 1000)
+        if (foundry.utils.lineSegmentIntersects(
+          ray.A, ray.B,
+          token[0],
+          token[1]
+        )) { 
+            collides = true;
+            break;
+        }
+      }
+      collisions.push(collides);
+  }
+
+  const d2 = Math.atan2(boundaries.growDirection.y, boundaries.growDirection.x)
+  for (let i = 0; i < 2; i++) {
+      const ray = foundry.canvas.geometry.Ray.fromAngle(
+      position.x + canvas.grid.size/2, position.y + canvas.grid.size/2, d2 + i * Math.PI, canvas.grid.size
+      );
+      //drawRay(ray)
+      const relevantTokenBounds = getRelevantTokens(ray, disposition);
+      let collides = false
+      for (const token of relevantTokenBounds) {
+        //drawRay(foundry.canvas.geometry.Ray.towardsPoint(token[0], token[1], canvas.grid.size * Math.SQRT2), 0xff00ff, 1000)
+      if (foundry.utils.lineSegmentIntersects(
+          ray.A, ray.B,
+          token[0],
+          token[1]
+      )) { 
+          collides = true;
+          break;
+      }
+      }
+      collisions.push(collides);
+  }
+
+  if (checkDiagonals) {
+      for (let i = 0; i < 4; i++) {
+      const directRay = foundry.canvas.geometry.Ray.fromAngle(
+          position.x + canvas.grid.size/2, position.y + canvas.grid.size/2, ((1 + 2*i) / 4) * Math.PI, canvas.grid.size*Math.SQRT2
+      );
+      const ray1 = foundry.canvas.geometry.Ray.fromAngle(
+          position.x + canvas.grid.size/2, position.y + canvas.grid.size/2, (i / 2) * Math.PI, canvas.grid.size
+      );
+      const ray2 = foundry.canvas.geometry.Ray.fromAngle(
+          position.x + canvas.grid.size/2, position.y + canvas.grid.size/2, ((1+i) / 2) * Math.PI, canvas.grid.size
+      );
+      //drawRay(directRay, 0x00ff00)
+      const relevantTokenBounds = getRelevantTokens(directRay, disposition).concat(getRelevantTokens(ray1, disposition)).concat(getRelevantTokens(ray2, disposition));
+      let collides = false
+      for (const token of relevantTokenBounds) {
+          if (foundry.utils.lineSegmentIntersects(
+              directRay.A, directRay.B,
+              token[0],
+              token[1]
+          ) || foundry.utils.lineSegmentIntersects(
+              ray1.A, ray1.B,
+              token[0],
+              token[1]
+          ) || foundry.utils.lineSegmentIntersects(
+              ray2.A, ray2.B,
+              token[0],
+              token[1]
+          )
+          ) { 
+          collides = true;
+          break;
+          }
+      }
+      collisions.push(collides);
+      }
+  }
+
+  return collisions
+}
