@@ -2,6 +2,8 @@
 
 **Token Formations** is a Foundry VTT module that enables coordinated movement and formation management for tokens on the map.
 
+https://github.com/user-attachments/assets/ae9cfaf3-413d-4982-a1e9-39c07fcbd0b8
+
 ## Features
 
 - **Formation Management:** Assign tokens to follow a leader, maintaining a configurable formation width and respecting maximum distance constraints.
@@ -21,7 +23,7 @@
 ## Authors
 
 - LordKumo  
-- Spiizz
+- spiiiizzzz
 
 ## License
 
