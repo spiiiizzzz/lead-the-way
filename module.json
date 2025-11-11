@@ -14,13 +14,14 @@
       "email": "alessandrocardillo16@gmail.com"
     },
     {
-      "name": "Spiizz",
-      "email": ""
+      "name": "spiiiizzzz",
+      "email": "spizzwrk@proton.me"
     }
   ],
   "esmodules": [
     "scripts/module.js",
-    "scripts/gui.js"
+    "scripts/gui.js",
+    "scripts/utils.js"
   ],
   "languages": [
     {
@@ -37,7 +38,7 @@
   "url": "",
   "manifest": "",
   "download": "",
-  "license": "MIT",
+  "license": "GPL3",
   "readme": "",
   "bugs": "",
   "changelog": ""

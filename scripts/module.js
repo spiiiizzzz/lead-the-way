@@ -4,24 +4,27 @@
  */
 
 import PriorityQueue from "./priorityQueue.js";
-import * as gui from './gui.js'
-import {findMinimumDistances, 
+import {
+  findMinimumDistances, 
   dot, 
   inLeftRightBoundary, 
-  inGrowBoundary, 
-  drawXonCell, 
-  rotateClockwise, 
-  drawSegmentBetweenCells, 
-  getAdjacentPositions, 
-  getRelevantWalls, 
-  drawRay, 
+  inGrowBoundary,
+  rotateClockwise,
+  getAdjacentPositions,
   checkWallCollision,
-  checkTokenCollisions
+  checkTokenCollisions,
+  removeToken,
+  isLeader,
+  getFollowers,
+  addFollower,
+  getLeader,
+  fromId,
+  MODULE_ID,
+  MODULE_NAME
 } from "./utils.js"
 
-// Module constants
-const MODULE_ID = 'lead-the-way';
-const MODULE_NAME = 'Lead The Way';
+
+let hoveredToken = null; // Currently hovered token
 
 
 /**
@@ -29,18 +32,6 @@ const MODULE_NAME = 'Lead The Way';
  */
 Hooks.once('init', () => {
   console.log(`${MODULE_NAME} | ${game.i18n.localize("lead-the-way.messages.init")}`);
-  
-  
-
-  // Register module settings here if needed
-  // game.settings.register(MODULE_ID, 'setting-name', {
-  //   name: 'Setting Name',
-  //   hint: 'Setting description',
-  //   scope: 'world',
-  //   config: true,
-  //   type: Boolean,
-  //   default: false
-  // });
 });
 
 /**
@@ -53,14 +44,14 @@ Hooks.once('ready', async () => {
     let tokens = canvas.tokens.objects.children
   
     for (const t1 of tokens) {
-      const t2 = await window.TokenFormations.getLeader(t1)
+      const t2 = await getLeader(t1)
 
       if (t2 === null) continue
   
-      const t3 = await window.TokenFormations.getLeader(t2)
+      const t3 = await getLeader(t2)
   
       if (t3 !== null) {
-        window.TokenFormations.addFollower(t3, t1)
+        addFollower(t3, t1)
       }
     }
   }
@@ -74,10 +65,9 @@ Hooks.once('ready', async () => {
 
         // Get the currently selected tokens and hovered token
         const selectedTokens = canvas.tokens.controlled;
-        const hoveredToken = window.TokenFormations.hoveredToken;
 
         if (selectedTokens.length === 1 && hoveredToken && selectedTokens[0].document.disposition === hoveredToken.document.disposition) {
-          await window.TokenFormations.addFollower(hoveredToken, selectedTokens[0])  
+          await addFollower(hoveredToken, selectedTokens[0])  
         } else if (selectedTokens.length === 0) {
           ui.notifications.warn(game.i18n.localize("lead-the-way.messages.selectToken"));
         } else if (selectedTokens.length > 1) {
@@ -120,10 +110,10 @@ Hooks.on('deleteToken', async (object) => {
     console.log(game.i18n.localize("lead-the-way.messages.notGM"));
     return;
   }
-  if (window.TokenFormations.isLeader(object)) {
-    const followers = await window.TokenFormations.getFollowers(object);
+  if (isLeader(object)) {
+    const followers = await getFollowers(object);
     for (const f of followers) {
-      await window.TokenFormations.removeToken(f)
+      await removeToken(f)
     }
   }
 });
@@ -133,27 +123,27 @@ Hooks.on('updateToken', async (updatedTokenDocument, updateData, options, userId
   if (!(updateData.flags?.["lead-the-way"])) return; // I'm honestly surprised this syntax works
   console.log("detected update on:", updatedTokenDocument.name)
   //Controlla se il token modificato è un leader
-  const updatedToken = window.TokenFormations.fromId(updatedTokenDocument.id)
+  const updatedToken = fromId(updatedTokenDocument.id)
 
-  const leader = await window.TokenFormations.getLeader(updatedToken)
+  const leader = await getLeader(updatedToken)
   if (leader && leader.document.canUserModify(game.user, "update")) {
     ui.notifications.info(game.i18n.format("lead-the-way.messages.followingYou", { token: updatedToken.name, leader: leader.name }))
   }
 
-  if (!(await window.TokenFormations.isLeader(updatedToken))) {
+  if (!(await isLeader(updatedToken))) {
     console.log(game.i18n.localize("lead-the-way.messages.updatedTokenNotLeader"))
     return;
   }
   
   for (const token of canvas.tokens.objects.children) {
     if (token.document.getUserLevel(game.user) &&
-      (await window.TokenFormations.getLeader(token))?.document.id === updatedTokenDocument.id)
+      (await getLeader(token))?.document.id === updatedTokenDocument.id)
     {
-      console.log("token", token.document, "leader is:", (await window.TokenFormations.getLeader(token))?.document.name)
-      const newLeader = await window.TokenFormations.getLeader(updatedToken)
+      console.log("token", token.document, "leader is:", (await getLeader(token))?.document.name)
+      const newLeader = await getLeader(updatedToken)
       if (newLeader) {
         console.log("newLeader", newLeader.document.name)
-        window.TokenFormations.addFollower(newLeader, token)
+        addFollower(newLeader, token)
       }
     }    
   }
@@ -169,19 +159,19 @@ Hooks.on('moveToken', async (tokenDocument, movement, options, userId) => {
   let token = canvas.tokens.objects.children.find((e) => e.id === tokenDocument.id) 
   if (token.inCombat) return;
 
-  if (movement.method !== "api" && !!(await window.TokenFormations.getLeader(token))) {
-    await window.TokenFormations.removeToken(token)
+  if (movement.method !== "api" && !!(await getLeader(token))) {
+    await removeToken(token)
     ui.notifications.info(game.i18n.localize("lead-the-way.messages.removedOnManualMove"))
     return
   }
 
-  if (!(await window.TokenFormations.isLeader(token))) return;
-  const followers = await window.TokenFormations.getFollowers(token);
+  if (!(await isLeader(token))) return;
+  const followers = await getFollowers(token);
 
   console.log("followers", followers);
   
 
-  if (await window.TokenFormations.isLeader(token)) {
+  if (await isLeader(token)) {
     if (movement.method === "api") {
       return
     }
@@ -423,130 +413,10 @@ Hooks.on('canvasReady', () => {
   Hooks.on('hoverToken', (token, hovered) => {
     if (hovered) {
       // Store the currently hovered token
-      window.TokenFormations.hoveredToken = token;
+      hoveredToken = token;
     } else {
       // Clear hovered token when no longer hovering
-      window.TokenFormations.hoveredToken = null;
+      hoveredToken = null;
     }
   });
 });
-
-// Export the module for potential use by other modules
-window.TokenFormations = {
-  MODULE_ID,
-  MODULE_NAME,
-  
-  // Formation management methods
-  hoveredToken: null, // Currently hovered token
-
-  fromId(id) {
-    return canvas.tokens.objects.children.find(e => e.id === id)
-  },
- 
-  async getLeader(follower) {
-    return this.fromId(await follower.document.getFlag(MODULE_ID, "leader")) || null
-  },
-
-  /**
-   * Add a follower to a leader's formation
-   * @param {string} leaderId - The ID of the leader token
-   * @param {string} follower - The the follower token
-   */
-  async addFollower(leader, follower) {
-    // Don't allow a token to follow itself
-    if(leader.document.id === follower.document.id) {
-      ui.notifications.warn(game.i18n.localize("lead-the-way.messages.cannotFollowSelf"));
-      return;
-    }
-
-    //Dont allow adding a follower that is already following the same leader
-    if ((await this.getLeader(leader))?.document.id === follower.id) {
-      ui.notifications.warn(game.i18n.localize("lead-the-way.messages.alreadyFollowing"));
-      return;
-    }
-    
-    // change the leader in case the hovered token is already following someone else
-      if (await this.getLeader(leader)) {
-      const newLeader = (await this.getLeader(leader)).document.id;
-      console.log("Leader is already a follower, changing leader");
-        await follower.document.setFlag(MODULE_ID, "leader", newLeader);
-        ui.notifications.info(
-          game.i18n.format("lead-the-way.messages.addedFollower", { follower: follower.name, leader: this.fromId(newLeader).name }),
-        { permanent: false }
-      );
-    } else {
-      // Add the selected token as a follower to the hovered token (leader)
-      follower.document.setFlag(MODULE_ID, "leader", leader.id);
-      ui.notifications.info(
-        game.i18n.format("lead-the-way.messages.addedFollower", { follower: follower.name, leader: leader.name }),
-        { permanent: false }
-      );
-    }
-  },
-  
-
-  /**
-   * Get all followers for a leader
-   * @param {string} leaderId - The ID of the leader token
-   * @returns {Array<string>} Array of follower IDs
-   */
-  async getFollowers(leader) {
-    let followers = []
-    for (let token of canvas.tokens.objects.children) {
-      let leaderId = await token.document.getFlag(MODULE_ID, "leader")
-      if (leaderId === leader.id) {
-        followers.push(token)
-      }
-    }
-    return followers
-  },
-
-  /**
-   * Get a list of all the followers for all leaders
-   */
-  async getAllFollowers() {
-    let allFollowers = []
-    for (let token of canvas.tokens.objects.children) {
-      let leaderId = await token.document.getFlag(MODULE_ID, "leader")
-      if (leaderId) {
-        allFollowers.push(token)
-      }
-    }
-    return allFollowers
-  },
-  
-  /**
-   * Check if a token is a leader
-   * @param {string} token - The token
-   * @returns {boolean} True if the token is a leader
-   */
-  async isLeader(token) {
-    for (let t of canvas.tokens.objects.children) {
-      let leaderId = await t.document.getFlag(MODULE_ID, "leader")
-      if (leaderId === token.id) return true
-    }
-    return false
-  },
-  
-  /**
-   * Remove a token from all formations (as leader or follower)
-   * @param {string} token - The token to remove
-   */
-  async removeToken(token) {
-    // Remove as follower
-    const leader = token.document.getFlag(MODULE_ID, "leader");
-    if (leader) {
-      ui.notifications.info(game.i18n.format("lead-the-way.messages.noLongerFollowing", { follower: token.name, leader: (await this.fromId(leader)).name }))
-    }
-    token.document.unsetFlag(MODULE_ID, "leader");
-  },
-  
-  /**
-   * Clear all formations
-   */
-  clearAllFormations() {
-    for (let token of canvas.tokens.objects.children) {
-      token.document.unsetFlag(MODULE_ID, "leader");
-    }
-  }
-};

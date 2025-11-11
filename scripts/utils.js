@@ -1,3 +1,6 @@
+export const MODULE_ID = 'lead-the-way';
+export const MODULE_NAME = 'Lead The Way';
+  
 export function findMinimumDistances (source, distances) {
   let minDistance = Number.MAX_SAFE_INTEGER
   let minPosition = null
@@ -403,4 +406,116 @@ export function checkTokenCollisions(position, boundaries, disposition, checkDia
   }
 
   return collisions
+}
+
+
+export function fromId(id) {
+  return canvas.tokens.objects.children.find(e => e.id === id)
+}
+
+export async function getLeader(follower) {
+  return fromId(await follower.document.getFlag(MODULE_ID, "leader")) || null
+}
+
+/**
+ * Add a follower to a leader's formation
+ * @param {string} leaderId - The ID of the leader token
+ * @param {string} follower - The the follower token
+ */
+export async function addFollower(leader, follower) {
+  // Don't allow a token to follow itself
+  if(leader.document.id === follower.document.id) {
+    ui.notifications.warn(game.i18n.localize("lead-the-way.messages.cannotFollowSelf"));
+    return;
+  }
+
+  //Dont allow adding a follower that is already following the same leader
+  if ((await getLeader(leader))?.document.id === follower.id) {
+    ui.notifications.warn(game.i18n.localize("lead-the-way.messages.alreadyFollowing"));
+    return;
+  }
+  
+  // change the leader in case the hovered token is already following someone else
+    if (await getLeader(leader)) {
+    const newLeader = (await getLeader(leader)).document.id;
+    console.log("Leader is already a follower, changing leader");
+      await follower.document.setFlag(MODULE_ID, "leader", newLeader);
+      ui.notifications.info(
+        game.i18n.format("lead-the-way.messages.addedFollower", { follower: follower.name, leader: fromId(newLeader).name }),
+      { permanent: false }
+    );
+  } else {
+    // Add the selected token as a follower to the hovered token (leader)
+    follower.document.setFlag(MODULE_ID, "leader", leader.id);
+    ui.notifications.info(
+      game.i18n.format("lead-the-way.messages.addedFollower", { follower: follower.name, leader: leader.name }),
+      { permanent: false }
+    );
+  }
+}
+
+
+/**
+ * Get all followers for a leader
+ * @param {string} leaderId - The ID of the leader token
+ * @returns {Array<string>} Array of follower IDs
+ */
+export async function getFollowers(leader) {
+  let followers = []
+  for (let token of canvas.tokens.objects.children) {
+    let leaderId = await token.document.getFlag(MODULE_ID, "leader")
+    if (leaderId === leader.id) {
+      followers.push(token)
+    }
+  }
+  return followers
+}
+
+/**
+ * Get a list of all the followers for all leaders
+ */
+export async function getAllFollowers() {
+  let allFollowers = []
+  for (let token of canvas.tokens.objects.children) {
+    let leaderId = await token.document.getFlag(MODULE_ID, "leader")
+    if (leaderId) {
+      allFollowers.push(token)
+    }
+  }
+  return allFollowers
+}
+
+/**
+ * Check if a token is a leader
+ * @param {string} token - The token
+ * @returns {boolean} True if the token is a leader
+ */
+export async function isLeader(token) {
+  for (let t of canvas.tokens.objects.children) {
+    let leaderId = await t.document.getFlag(MODULE_ID, "leader")
+    if (leaderId === token.id) return true
+  }
+  return false
+}
+
+/**
+ * Remove a token from all formations (as leader or follower)
+ * @param {string} token - The token to remove
+ */
+export async function removeToken(token) {
+  // Remove as follower
+  const leader = token.document.getFlag(MODULE_ID, "leader");
+  if (leader) {
+    ui.notifications.info(game.i18n.format("lead-the-way.messages.noLongerFollowing", { follower: token.name, leader: (await fromId(leader)).name }))
+  }
+  token.document.unsetFlag(MODULE_ID, "leader");
+}
+
+/**
+ * Clear all formations
+ */
+export function clearAllFormations() {
+  for (let token of canvas.tokens.objects.children) {
+    token.document.unsetFlag(MODULE_ID, "leader");
+  }
 }
