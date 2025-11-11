@@ -24,7 +24,3 @@ https://github.com/user-attachments/assets/ae9cfaf3-413d-4982-a1e9-39c07fcbd0b8
 
 - LordKumo  
 - spiiiizzzz
-
-## License
-
-MIT
