@@ -1,7 +1,7 @@
 {
-  "token-formations": {
+  "lead-the-way": {
     "module": {
-      "name": "Token Formations",
+      "name": "Lead The Way",
       "description": "A module for managing token formations in Foundry VTT"
     },
     "settings": {
@@ -43,8 +43,8 @@
       }
     },
     "messages": {
-      "init": "Token Formations module initialized.",
-      "ready": "Token Formations module ready.",
+      "init": "Lead The Way module initialized.",
+      "ready": "Lead The Way module ready.",
       "selectToken": "Please select a token first.",
       "selectOneToken": "Please select only one token.",
       "hoverLeader": "Please hover over a leader token.",

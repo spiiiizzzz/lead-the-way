@@ -1,6 +1,6 @@
 {
-  "id": "token-formations",
-  "title": "Token Formations",
+  "id": "lead-the-way",
+  "title": "Lead The Way",
   "description": "A module for managing token formations in Foundry VTT",
   "version": "1.0.0",
   "compatibility": {

@@ -20,18 +20,15 @@ import {findMinimumDistances,
 } from "./utils.js"
 
 // Module constants
-const MODULE_ID = 'token-formations';
-const MODULE_NAME = 'Token Formations';
-
-// Formation data structure: Map<leaderId, Set<followerId>>
-let enabled = true;
+const MODULE_ID = 'lead-the-way';
+const MODULE_NAME = 'Lead The Way';
 
 
 /**
  * Initialize the module
  */
 Hooks.once('init', () => {
-  console.log(`${MODULE_NAME} | ${game.i18n.localize("token-formations.messages.init")}`);
+  console.log(`${MODULE_NAME} | ${game.i18n.localize("lead-the-way.messages.init")}`);
   
   
 
@@ -50,7 +47,7 @@ Hooks.once('init', () => {
  * Setup the module when Foundry is ready
  */
 Hooks.once('ready', async () => {
-  console.log(`${MODULE_NAME} | ${game.i18n.localize("token-formations.messages.ready")}`);
+  console.log(`${MODULE_NAME} | ${game.i18n.localize("lead-the-way.messages.ready")}`);
 
   if (game.user.isGM) {
     let tokens = canvas.tokens.objects.children
@@ -82,11 +79,11 @@ Hooks.once('ready', async () => {
         if (selectedTokens.length === 1 && hoveredToken && selectedTokens[0].document.disposition === hoveredToken.document.disposition) {
           await window.TokenFormations.addFollower(hoveredToken, selectedTokens[0])  
         } else if (selectedTokens.length === 0) {
-          ui.notifications.warn(game.i18n.localize("token-formations.messages.selectToken"));
+          ui.notifications.warn(game.i18n.localize("lead-the-way.messages.selectToken"));
         } else if (selectedTokens.length > 1) {
-          ui.notifications.warn(game.i18n.localize("token-formations.messages.selectOneToken"));
+          ui.notifications.warn(game.i18n.localize("lead-the-way.messages.selectOneToken"));
         } else if (!hoveredToken) {
-          ui.notifications.warn(game.i18n.localize("token-formations.messages.hoverLeader"));
+          ui.notifications.warn(game.i18n.localize("lead-the-way.messages.hoverLeader"));
         } else if (selectedTokens[0].document.disposition !== hoveredToken.document.disposition) {
           ui.notifications.warn("Cannot follow a token with a different disposition") // TODO: localize
         }
@@ -94,18 +91,18 @@ Hooks.once('ready', async () => {
     }
   });
 
-  game.settings.register('token-formations', 'queue-width', {
-    name: game.i18n.localize("token-formations.settings.queueWidth.name"),
-    hint: game.i18n.localize("token-formations.settings.queueWidth.hint"),
+  game.settings.register('lead-the-way', 'queue-width', {
+    name: game.i18n.localize("lead-the-way.settings.queueWidth.name"),
+    hint: game.i18n.localize("lead-the-way.settings.queueWidth.hint"),
     scope: 'world',
     config: true,
     type: Number,
     default: 2,
   });
 
-  game.settings.register('token-formations', 'max-distance', {
-    name: game.i18n.localize("token-formations.settings.maxDistance.name"),
-    hint: game.i18n.localize("token-formations.settings.maxDistance.hint"),
+  game.settings.register('lead-the-way', 'max-distance', {
+    name: game.i18n.localize("lead-the-way.settings.maxDistance.name"),
+    hint: game.i18n.localize("lead-the-way.settings.maxDistance.hint"),
     scope: 'world',
     config: true,
     type: Number,
@@ -120,7 +117,7 @@ Hooks.once('ready', async () => {
 
 Hooks.on('deleteToken', async (object) => {
   if (!game.user.isGM) {
-    console.log(game.i18n.localize("token-formations.messages.notGM"));
+    console.log(game.i18n.localize("lead-the-way.messages.notGM"));
     return;
   }
   if (window.TokenFormations.isLeader(object)) {
@@ -133,18 +130,18 @@ Hooks.on('deleteToken', async (object) => {
 
 Hooks.on('updateToken', async (updatedTokenDocument, updateData, options, userId) => {
   //Controlla se l'update riguarda le flag
-  if (!(updateData.flags?.["token-formations"])) return; // I'm honestly surprised this syntax works
+  if (!(updateData.flags?.["lead-the-way"])) return; // I'm honestly surprised this syntax works
   console.log("detected update on:", updatedTokenDocument.name)
   //Controlla se il token modificato è un leader
   const updatedToken = window.TokenFormations.fromId(updatedTokenDocument.id)
 
   const leader = await window.TokenFormations.getLeader(updatedToken)
   if (leader && leader.document.canUserModify(game.user, "update")) {
-    ui.notifications.info(game.i18n.format("token-formations.messages.followingYou", { token: updatedToken.name, leader: leader.name }))
+    ui.notifications.info(game.i18n.format("lead-the-way.messages.followingYou", { token: updatedToken.name, leader: leader.name }))
   }
 
   if (!(await window.TokenFormations.isLeader(updatedToken))) {
-    console.log(game.i18n.localize("token-formations.messages.updatedTokenNotLeader"))
+    console.log(game.i18n.localize("lead-the-way.messages.updatedTokenNotLeader"))
     return;
   }
   
@@ -166,7 +163,7 @@ Hooks.on('updateToken', async (updatedTokenDocument, updateData, options, userId
 
 Hooks.on('moveToken', async (tokenDocument, movement, options, userId) => {
   if (!game.user.isGM) {
-    console.log(game.i18n.localize("token-formations.messages.notGM"));
+    console.log(game.i18n.localize("lead-the-way.messages.notGM"));
     return;
   }
   let token = canvas.tokens.objects.children.find((e) => e.id === tokenDocument.id) 
@@ -174,7 +171,7 @@ Hooks.on('moveToken', async (tokenDocument, movement, options, userId) => {
 
   if (movement.method !== "api" && !!(await window.TokenFormations.getLeader(token))) {
     await window.TokenFormations.removeToken(token)
-    ui.notifications.info(game.i18n.localize("token-formations.messages.removedOnManualMove"))
+    ui.notifications.info(game.i18n.localize("lead-the-way.messages.removedOnManualMove"))
     return
   }
 
@@ -255,7 +252,7 @@ Hooks.on('moveToken', async (tokenDocument, movement, options, userId) => {
       growDirection: closestCardinal
     }
 
-    let n = game.settings.get('token-formations', 'queue-width');
+    let n = game.settings.get('lead-the-way', 'queue-width');
 
     //drawXonCell(firstPosition.x, firstPosition.y, 0xff0000, 1, 1000)
     if (dot(movementCardinal, closestCardinal) === 0) { // Cardinals are perpendicular
@@ -335,7 +332,7 @@ Hooks.on('moveToken', async (tokenDocument, movement, options, userId) => {
       drawXonCell(v.x, v.y, 0xff0000, 0.8, 5000)
     }*/
 
-    const maxDistance = game.settings.get('token-formations', 'max-distance') * canvas.grid.size;
+    const maxDistance = game.settings.get('lead-the-way', 'max-distance') * canvas.grid.size;
 
     for (let i = followerLength-1; i >= 0; i--) {
       const f = followers[i]
@@ -345,7 +342,7 @@ Hooks.on('moveToken', async (tokenDocument, movement, options, userId) => {
       }
 
       if (validPositions.length === 0) {
-        ui.notifications.warn(game.i18n.localize("token-formations.messages.noValidLocation"))
+        ui.notifications.warn(game.i18n.localize("lead-the-way.messages.noValidLocation"))
         return
       }
 
@@ -356,7 +353,7 @@ Hooks.on('moveToken', async (tokenDocument, movement, options, userId) => {
       const dist = Math.sqrt(Math.pow(currentPosition.x - targetPosition.x, 2) + Math.pow(currentPosition.y - targetPosition.y, 2))
       if (maxDistance !== 0 && dist > maxDistance) {
         followers.splice(i, 1)
-        ui.notifications.warn(game.i18n.localize("token-formations.messages.targetTooFar"))
+        ui.notifications.warn(game.i18n.localize("lead-the-way.messages.targetTooFar"))
         continue
       }
 
@@ -458,13 +455,13 @@ window.TokenFormations = {
   async addFollower(leader, follower) {
     // Don't allow a token to follow itself
     if(leader.document.id === follower.document.id) {
-      ui.notifications.warn(game.i18n.localize("token-formations.messages.cannotFollowSelf"));
+      ui.notifications.warn(game.i18n.localize("lead-the-way.messages.cannotFollowSelf"));
       return;
     }
 
     //Dont allow adding a follower that is already following the same leader
     if ((await this.getLeader(leader))?.document.id === follower.id) {
-      ui.notifications.warn(game.i18n.localize("token-formations.messages.alreadyFollowing"));
+      ui.notifications.warn(game.i18n.localize("lead-the-way.messages.alreadyFollowing"));
       return;
     }
     
@@ -474,14 +471,14 @@ window.TokenFormations = {
       console.log("Leader is already a follower, changing leader");
         await follower.document.setFlag(MODULE_ID, "leader", newLeader);
         ui.notifications.info(
-          game.i18n.format("token-formations.messages.addedFollower", { follower: follower.name, leader: this.fromId(newLeader).name }),
+          game.i18n.format("lead-the-way.messages.addedFollower", { follower: follower.name, leader: this.fromId(newLeader).name }),
         { permanent: false }
       );
     } else {
       // Add the selected token as a follower to the hovered token (leader)
       follower.document.setFlag(MODULE_ID, "leader", leader.id);
       ui.notifications.info(
-        game.i18n.format("token-formations.messages.addedFollower", { follower: follower.name, leader: leader.name }),
+        game.i18n.format("lead-the-way.messages.addedFollower", { follower: follower.name, leader: leader.name }),
         { permanent: false }
       );
     }
@@ -539,7 +536,7 @@ window.TokenFormations = {
     // Remove as follower
     const leader = token.document.getFlag(MODULE_ID, "leader");
     if (leader) {
-      ui.notifications.info(game.i18n.format("token-formations.messages.noLongerFollowing", { follower: token.name, leader: (await this.fromId(leader)).name }))
+      ui.notifications.info(game.i18n.format("lead-the-way.messages.noLongerFollowing", { follower: token.name, leader: (await this.fromId(leader)).name }))
     }
     token.document.unsetFlag(MODULE_ID, "leader");
   },
