@@ -2,7 +2,7 @@
   "lead-the-way": {
     "module": {
       "name": "Lead The Way",
-      "description": "Un modulo per gestire le formazioni dei token in Foundry VTT"
+      "description": "Un modulo per il movimento coordinato dei token in Foundry VTT"
     },
     "settings": {
       "queueWidth": {
@@ -11,7 +11,7 @@
       },
       "maxDistance": {
         "name": "Distanza Massima",
-        "hint": "Imposta la distanza massima che un token può seguire il leader. 0 = Infinita. Imposta un limite se il sistema è lento."
+        "hint": "Imposta la distanza massima a cui un token può seguire il leader. 0 = Infinita. Imposta un limite se il sistema è lento."
       },
       "showFollowingIndicator": {
         "name": "Mostra indicatore di seguito",

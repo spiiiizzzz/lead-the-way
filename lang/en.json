@@ -2,7 +2,7 @@
   "lead-the-way": {
     "module": {
       "name": "Lead The Way",
-      "description": "A module for managing token formations in Foundry VTT"
+      "description": "A module for token following in Foundry VTT"
     },
     "settings": {
       "queueWidth": {

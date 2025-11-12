@@ -1,7 +1,7 @@
 {
   "id": "lead-the-way",
   "title": "Lead The Way",
-  "description": "A module for managing token formations in Foundry VTT",
+  "description": "A module for token following in Foundry VTT",
   "version": "1.0.0",
   "compatibility": {
     "minimum": "13",
@@ -20,8 +20,7 @@
   ],
   "esmodules": [
     "scripts/module.js",
-    "scripts/gui.js",
-    "scripts/utils.js"
+    "scripts/gui.js"
   ],
   "languages": [
     {
@@ -35,11 +34,9 @@
       "path": "lang/it.json"
     }
   ],
-  "url": "",
-  "manifest": "",
+  "url": "https://github.com/spiiiizzzz/lead-the-way",
+  "manifest": "https://github.com/spiiiizzzz/lead-the-way/blob/main/module.json",
   "download": "",
-  "license": "GPL3",
-  "readme": "",
-  "bugs": "",
-  "changelog": ""
+  "license": "GPL-3.0",
+  "readme": "https://github.com/spiiiizzzz/lead-the-way/blob/main/README.md"
 }
