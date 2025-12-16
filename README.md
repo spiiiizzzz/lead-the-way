@@ -16,26 +16,19 @@ The Basic commands are:
 
 Your token will move automatically when the leader moves.
 
-*We could put a short video or image here*
+https://github.com/user-attachments/assets/6d29f8e1-b7ea-4ff0-b0ff-f1664634990c
 
 If you follow a token that already has a leader, you'll follow that leader as well. If some tokens are already following you, they'll follow the new leader too.
 
-*We could put a short video or image here*
+https://github.com/user-attachments/assets/eb8a6e9b-e892-467f-a47e-11f872eee2f4
 
 Tokens who are following someone will show their leader in an overlayed icon. Its position and size is configurable from the settings.
 
-*Insert another image or video*
-
 The width of the following tokens formation is also configurable from the settings.
-
-*insert another image or video*
 
 Token following will be disabled during combat and re-enabled when it ends.
 
-*insert another image or video*
-
-## TODO (eventually)
+## Planned features
 
 - Support for Hex grid and gridless mode
 - Better handling of larger tokens
-
