@@ -35,8 +35,8 @@
     }
   ],
   "url": "https://github.com/spiiiizzzz/lead-the-way",
-  "manifest": "https://github.com/spiiiizzzz/lead-the-way/blob/main/module.json",
+  "manifest": "https://raw.githubusercontent.com/spiiiizzzz/lead-the-way/refs/heads/main/module.json",
   "download": "",
   "license": "GPL-3.0",
-  "readme": "https://github.com/spiiiizzzz/lead-the-way/blob/main/README.md"
+  "readme": "https://raw.githubusercontent.com/spiiiizzzz/lead-the-way/refs/heads/main/README.md"
 }
